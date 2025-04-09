@@ -425,6 +425,44 @@
   color: #555;
 }
 
+.toast-container {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1050; /* Above most other elements */
+  min-width: 250px;
+  text-align: center;
+}
+
+.toast {
+  padding: 10px 20px;
+  border-radius: 6px;
+  color: #fff;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+  opacity: 0.95;
+  /* Add simple fade animation */
+  animation: fadein 0.5s, fadeout 0.5s 2.5s;
+}
+
+.toast-success {
+  background-color: #28a745; /* Green */
+}
+
+.toast-error {
+  background-color: #dc3545; /* Red */
+}
+
+/* Simple Fade Animation Keyframes */
+@keyframes fadein {
+  from { bottom: 0; opacity: 0; }
+  to { bottom: 30px; opacity: 0.95; }
+}
+@keyframes fadeout {
+  from { bottom: 30px; opacity: 0.95; }
+  to { bottom: 0; opacity: 0; }
+}
+
 @media (max-width: 900px) {
   :host {
       padding-top: 60px;

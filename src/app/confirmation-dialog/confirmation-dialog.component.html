@@ -1,0 +1,13 @@
+<div class="modal-overlay" *ngIf="isVisible">
+    <div class="modal-content">
+      <p class="modal-message">{{ message }}</p>
+      <div class="modal-actions">
+        <button type="button" class="modal-button cancel-button" (click)="onCancelClick()">
+          {{ cancelButtonText }}
+        </button>
+        <button type="button" class="modal-button confirm-button" (click)="onConfirmClick()">
+          {{ confirmButtonText }}
+        </button>
+      </div>
+    </div>
+  </div>

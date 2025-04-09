@@ -60,16 +60,18 @@
         </div>
       </div>
       <div class="form-actions">
-          <button type="submit" class="add-button">
-              {{ editingCategory ? 'Update Category' : 'Add Category' }}
-          </button>
-          <button
-            type="button"
-            class="cancel-button"
-            *ngIf="editingCategory"
-            (click)="cancelEdit()">
-              Cancel
-          </button>
+        <button type="submit" class="add-button" [disabled]="isSaving">
+            <span *ngIf="!isSaving">{{ editingCategory ? 'Update Category' : 'Add Category' }}</span>
+            <span *ngIf="isSaving">Saving...</span>
+         </button>
+        <button
+          type="button"
+          class="cancel-button"
+          *ngIf="editingCategory"
+          (click)="cancelEdit()"
+          [disabled]="isSaving">
+            Cancel
+        </button>
       </div>
     </form>
   </div>
@@ -94,14 +96,15 @@
               </span>
             </div>
           </div>
-         <div class="category-actions">
-            <button class="action-button edit-button" (click)="editCategory(category)" title="Edit" [disabled]="editingCategory?.id === category.id">
-             <span class="material-symbols-outlined">edit</span>
-           </button>
-           <button class="action-button delete-button" (click)="deleteCategory(category.id)" title="Delete">
-             <span class="material-symbols-outlined">delete</span>
-           </button>
-         </div>
+          <div class="category-actions">
+            <button class="action-button edit-button" (click)="editCategory(category)" title="Edit" [disabled]="isSaving || !!editingCategory || isDeleting[category.id]">
+              <span class="material-symbols-outlined">edit</span>
+            </button>
+            <button class="action-button delete-button" (click)="deleteCategory(category.id)" title="Delete" [disabled]="isSaving || isDeleting[category.id]">
+              <span *ngIf="!isDeleting[category.id]" class="material-symbols-outlined">delete</span>
+              <span *ngIf="isDeleting[category.id]">...</span>
+            </button>
+          </div>
        </div>
      </div>
    </div>
@@ -121,5 +124,18 @@
     </div>
   </div>
 
+  <app-confirmation-dialog
+    [isVisible]="showDeleteConfirm"
+    [message]="'Delete category \'' + (categoryToDelete?.name || '...') + '\'? This cannot be undone.'"
+    confirmButtonText="Delete"
+    cancelButtonText="Cancel"
+    (confirm)="confirmDeletion()"
+    (cancel)="cancelDeletion()">
+  </app-confirmation-dialog>
 
+  <div class="toast-container" *ngIf="toastMessage">
+    <div class="toast" [class.toast-success]="toastType === 'success'" [class.toast-error]="toastType === 'error'">
+      {{ toastMessage }}
+    </div>
+  </div>
 </div>

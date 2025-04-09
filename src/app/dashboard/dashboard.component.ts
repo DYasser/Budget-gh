@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ViewChild, HostListener, ChangeDetectorRef, NgZone } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, HostListener, ChangeDetectorRef } from '@angular/core';
 import { CommonModule, CurrencyPipe } from '@angular/common';
 import { BaseChartDirective } from 'ng2-charts';
 import { ChartConfiguration, ChartData, ChartType } from 'chart.js';
@@ -6,7 +6,7 @@ import { trigger, state, style, transition, animate, AnimationEvent } from '@ang
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { BudgetService, ExpenseCategory } from '../budget.service';
-import { addMonths, subMonths, lastDayOfMonth, parseISO, addWeeks, addYears, startOfMonth, endOfMonth, startOfWeek, endOfWeek, isWithinInterval, addDays, getMonth, getYear, format, startOfDay, endOfDay } from 'date-fns'; // Ensure date-fns imports if needed directly
+import { addMonths, subMonths, lastDayOfMonth, parseISO } from 'date-fns';
 
 interface EventColor { primary: string; secondary: string; }
 
@@ -43,20 +43,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
   ];
   public doughnutChartType: 'doughnut' = 'doughnut';
   public doughnutChartOptions: ChartConfiguration<'doughnut'>['options'] = {
-    responsive: true,
-    maintainAspectRatio: true,
-    cutout: '85%',
-    plugins: {
-      legend: { display: false },
-      tooltip: { enabled: true },
-      datalabels: { display: false }
-    }
+    responsive: true, maintainAspectRatio: true, cutout: '85%',
+    plugins: { legend: { display: false }, tooltip: { enabled: false }, datalabels: { display: false } }
   };
-
-  private readonly colorPalette: string[] = [
-    '#36A2EB', '#FF6384', '#FFCE56', '#4BC0C0', '#9966FF',
-    '#FF9F40', '#C9CBCF', '#7CFFC4', '#FF7C7C', '#BDB2FF'
-  ];
 
   constructor(
     private router: Router,
@@ -69,116 +58,62 @@ export class DashboardComponent implements OnInit, OnDestroy {
     const alreadyWelcomed = sessionStorage.getItem('dashboardWelcomed');
     if (alreadyWelcomed === 'true') {
       this.showWelcome = false;
-      setTimeout(() => {
-         this.showChart = true;
-         this.cdr.detectChanges();
-         this.attemptChartResize();
-      }, 0);
+      setTimeout(() => { this.showChart = true; this.cdr.detectChanges(); this.attemptChartResize(); }, 0);
     } else {
-      this.showWelcome = true;
-      this.showChart = false;
-      this.timerHandle = setTimeout(() => {
-        if (this.showWelcome) { this.showWelcome = false; }
-      }, 3000);
+      this.showWelcome = true; this.showChart = false;
+      this.timerHandle = setTimeout(() => { if (this.showWelcome) { this.showWelcome = false; } }, 3000);
     }
-
-    this.categoriesSubscription = this.budgetService.categories$.subscribe(categories => {
-        this.updateDashboardChart(categories);
-    });
-
+    this.categoriesSubscription = this.budgetService.categories$.subscribe(categories => { this.updateDashboardChart(categories); });
     if (window.visualViewport) {
       this.boundResizeHandler = this.handleViewportResize.bind(this);
       window.visualViewport.addEventListener('resize', this.boundResizeHandler);
-    } else {
-      console.warn('visualViewport API not supported.');
     }
   }
 
   ngOnDestroy(): void {
     if (this.timerHandle) { clearTimeout(this.timerHandle); }
     clearTimeout(this.resizeTimeout);
-    if (this.categoriesSubscription) {
-        this.categoriesSubscription.unsubscribe();
-    }
-    if (this.boundResizeHandler && window.visualViewport) {
-        window.visualViewport.removeEventListener('resize', this.boundResizeHandler);
-    }
+    if (this.categoriesSubscription) { this.categoriesSubscription.unsubscribe(); }
+    if (this.boundResizeHandler && window.visualViewport) { window.visualViewport.removeEventListener('resize', this.boundResizeHandler); }
   }
 
   private getOrdinalSuffix(day: number): string {
     if (day > 3 && day < 21) return 'th';
-    switch (day % 10) {
-      case 1:  return 'st';
-      case 2:  return 'nd';
-      case 3:  return 'rd';
-      default: return 'th';
-    }
+    switch (day % 10) { case 1: return 'st'; case 2: return 'nd'; case 3: return 'rd'; default: return 'th'; }
   }
 
   setChartDateTitle(): void {
       const now = new Date();
       const currentMonthName = now.toLocaleString('default', { month: 'long' });
-      const currentYear = now.getFullYear();
-      const currentMonthIndex = now.getMonth();
+      const currentYear = now.getFullYear(); const currentMonthIndex = now.getMonth();
       const lastDayOfMonth = new Date(currentYear, currentMonthIndex + 1, 0).getDate();
-      const firstSuffix = this.getOrdinalSuffix(1);
-      const lastSuffix = this.getOrdinalSuffix(lastDayOfMonth);
+      const firstSuffix = this.getOrdinalSuffix(1); const lastSuffix = this.getOrdinalSuffix(lastDayOfMonth);
       this.chartDateRangeTitle = `${currentMonthName} 1<sup>${firstSuffix}</sup> - ${lastDayOfMonth}<sup>${lastSuffix}</sup>`;
   }
 
   getLegendColor(index: number): string {
-    const dataset = this.doughnutChartDatasets[0];
-    const bgColors = dataset?.backgroundColor;
-    if (Array.isArray(bgColors) && index >= 0 && index < bgColors.length) {
-      return bgColors[index] ?? '#cccccc';
-    }
+    const dataset = this.doughnutChartDatasets[0]; const bgColors = dataset?.backgroundColor;
+    if (Array.isArray(bgColors) && typeof bgColors[0] === 'string' && index >= 0 && index < bgColors.length) { return bgColors[index] ?? '#cccccc'; }
     return '#cccccc';
   }
 
   updateDashboardChart(categories: ExpenseCategory[]): void {
-    console.log('Dashboard received category update:', categories);
+    const targetDate = this.viewDate; // Use dashboard's viewDate
 
-    const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
-
-    const relevantCategoriesThisMonth = categories.filter(cat => {
-        if (cat.frequency === 'Weekly' || cat.frequency === 'Bi-Weekly') { return true; }
-        if (cat.dueDate) {
-            try {
-                const dueDate = new Date(cat.dueDate + 'T00:00:00');
-                const dueMonth = dueDate.getMonth();
-                const dueYear = dueDate.getFullYear();
-                if (cat.frequency === 'Monthly') {
-                   if (cat.isDueEndOfMonth) {
-                      return (dueYear < currentYear) || (dueYear === currentYear && dueMonth <= currentMonth);
-                   } else { return true; }
-                } else if (cat.frequency === 'Quarterly' || cat.frequency === 'Annually' || cat.frequency === 'One-Time') {
-                   return dueMonth === currentMonth && dueYear === currentYear;
-                }
-            } catch (e) { return false; }
-        }
-        return false;
-    });
-
-    console.log('Dashboard showing categories relevant this month:', relevantCategoriesThisMonth);
-
-    this.totalBudget = this.budgetService.calculateTotalOccurrencesBudgetForMonth(categories, this.viewDate);
+    const relevantCategoriesThisMonth = this.budgetService.getRelevantCategoriesForMonth(categories, targetDate);
+    this.totalBudget = this.budgetService.calculateTotalOccurrencesBudgetForMonth(categories, targetDate); // Use occurrence total
 
     if (!relevantCategoriesThisMonth || relevantCategoriesThisMonth.length === 0) {
       this.doughnutChartLabels = [];
       if (this.doughnutChartDatasets[0]) {
-          this.doughnutChartDatasets[0].data = [];
-          this.doughnutChartDatasets[0].backgroundColor = [];
-          this.doughnutChartDatasets[0].hoverBackgroundColor = [];
+          this.doughnutChartDatasets[0].data = []; this.doughnutChartDatasets[0].backgroundColor = []; this.doughnutChartDatasets[0].hoverBackgroundColor = [];
       }
     } else {
       this.doughnutChartLabels = relevantCategoriesThisMonth.map(c => c.name);
       if (this.doughnutChartDatasets[0]) {
           this.doughnutChartDatasets[0].data = relevantCategoriesThisMonth.map(c => c.budget);
-          const colors = relevantCategoriesThisMonth.map((c, index) => c.color || this.colorPalette[index % this.colorPalette.length]);
-          this.doughnutChartDatasets[0].backgroundColor = colors;
-          this.doughnutChartDatasets[0].hoverBackgroundColor = colors;
+          const colors = relevantCategoriesThisMonth.map((c, index) => c.color || this.budgetService.getColorByIndex(index));
+          this.doughnutChartDatasets[0].backgroundColor = colors; this.doughnutChartDatasets[0].hoverBackgroundColor = colors;
       }
     }
 
@@ -188,38 +123,20 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   handleViewportResize(): void {
     clearTimeout(this.resizeTimeout);
-    this.resizeTimeout = setTimeout(() => {
-      if (this.chart?.chart) {
-        this.chart.chart.resize();
-        this.cdr.detectChanges();
-      }
-    }, 75);
-  }
-
-  onWelcomeFadeDone(event: AnimationEvent): void {
-    if (event.toState === 'void' && !this.showChart) {
-      setTimeout(() => {
-         this.showChart = true;
-         this.cdr.detectChanges();
-         this.attemptChartResize();
-         sessionStorage.setItem('dashboardWelcomed', 'true');
-      }, 0);
-    }
+    this.resizeTimeout = setTimeout(() => { if (this.chart?.chart) { this.chart.chart.resize(); this.cdr.detectChanges(); } }, 75);
   }
 
   attemptChartResize(): void {
     if (!this.chart?.chart) { return; }
-    try {
-        this.chart.chart.resize();
-        this.chart.chart.update('none');
-        this.cdr.detectChanges();
-    } catch (error) {
-        console.error('[RESIZE] Error during chart resize/update:', error);
+    try { this.chart.chart.resize(); this.chart.chart.update('none'); this.cdr.detectChanges(); }
+    catch (error) { console.error('[RESIZE] Error during chart resize/update:', error); }
+  }
+
+  onWelcomeFadeDone(event: AnimationEvent): void {
+    if (event.toState === 'void' && !this.showChart) {
+      setTimeout(() => { this.showChart = true; this.cdr.detectChanges(); this.attemptChartResize(); sessionStorage.setItem('dashboardWelcomed', 'true'); }, 0);
     }
   }
 
-  goTo(page: string): void {
-    const targetRoute = `/${page}`;
-    this.router.navigate([targetRoute]);
-  }
+  goTo(page: string): void { const targetRoute = `/${page}`; this.router.navigate([targetRoute]); }
 }
