@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ViewChild, HostListener, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, HostListener, ChangeDetectorRef, NgZone } from '@angular/core';
 import { CommonModule, CurrencyPipe } from '@angular/common';
 import { BaseChartDirective } from 'ng2-charts';
 import { ChartConfiguration, ChartData, ChartType } from 'chart.js';
@@ -7,6 +7,7 @@ import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { BudgetService, ExpenseCategory } from '../budget.service';
 import { addMonths, subMonths, lastDayOfMonth, parseISO } from 'date-fns';
+import { getMonthView } from 'calendar-utils';
 
 interface EventColor { primary: string; secondary: string; }
 
@@ -43,8 +44,14 @@ export class DashboardComponent implements OnInit, OnDestroy {
   ];
   public doughnutChartType: 'doughnut' = 'doughnut';
   public doughnutChartOptions: ChartConfiguration<'doughnut'>['options'] = {
-    responsive: true, maintainAspectRatio: true, cutout: '85%',
-    plugins: { legend: { display: false }, tooltip: { enabled: false }, datalabels: { display: false } }
+    responsive: true,
+    maintainAspectRatio: true,
+    cutout: '85%',
+    plugins: {
+      legend: { display: false },
+      tooltip: { enabled: false },
+      datalabels: { display: false }
+    }
   };
 
   constructor(
@@ -98,10 +105,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   updateDashboardChart(categories: ExpenseCategory[]): void {
-    const targetDate = this.viewDate; // Use dashboard's viewDate
-
+    const targetDate = this.viewDate;
     const relevantCategoriesThisMonth = this.budgetService.getRelevantCategoriesForMonth(categories, targetDate);
-    this.totalBudget = this.budgetService.calculateTotalOccurrencesBudgetForMonth(categories, targetDate); // Use occurrence total
+    this.totalBudget = this.budgetService.calculateTotalOccurrencesBudgetForMonth(categories, targetDate);
 
     if (!relevantCategoriesThisMonth || relevantCategoriesThisMonth.length === 0) {
       this.doughnutChartLabels = [];
@@ -123,13 +129,22 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   handleViewportResize(): void {
     clearTimeout(this.resizeTimeout);
-    this.resizeTimeout = setTimeout(() => { if (this.chart?.chart) { this.chart.chart.resize(); this.cdr.detectChanges(); } }, 75);
+    this.resizeTimeout = setTimeout(() => {
+      this.attemptChartResize();
+    }, 75);
   }
 
   attemptChartResize(): void {
     if (!this.chart?.chart) { return; }
-    try { this.chart.chart.resize(); this.chart.chart.update('none'); this.cdr.detectChanges(); }
-    catch (error) { console.error('[RESIZE] Error during chart resize/update:', error); }
+    try {
+        console.log('[RESIZE] Attempting resize/update...'); // Keep log
+        this.chart.chart.resize();
+        this.chart.chart.update('none');
+        this.cdr.detectChanges();
+        console.log('[RESIZE] Resize/update finished.'); // Keep log
+    } catch (error) {
+        console.error('[RESIZE] Error during chart resize/update:', error);
+    }
   }
 
   onWelcomeFadeDone(event: AnimationEvent): void {

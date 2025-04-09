@@ -76,9 +76,6 @@
   -webkit-appearance: none;
   margin: 0;
 }
-.expense-form input[type=number] {
-  -moz-appearance: textfield;
-}
 
 .form-actions {
     display: flex;
