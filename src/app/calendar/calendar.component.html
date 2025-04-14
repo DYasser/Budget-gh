@@ -1,32 +1,32 @@
 <div class="calendar-page-container">
-    <div class="calendar-controls">
-      <div class="controls-left">
-        <button class="control-button" (click)="goToPreviousMonth()" title="Previous Month">
-          <span class="material-symbols-outlined">chevron_left</span>
-        </button>
-        <button class="control-button" (click)="goToNextMonth()" title="Next Month">
-          <span class="material-symbols-outlined">chevron_right</span>
-        </button>
-        <button class="control-button today-button" (click)="goToToday()">
-          Today
-        </button>
-      </div>
-  
-      <h3 class="calendar-title">
-        {{ viewDate | date:'LLLL y' }}
-      </h3>
-  
-      <div class="controls-right">
-        </div>
+  <div class="calendar-controls">
+    <div class="controls-left">
+      <button class="control-button" (click)="goToPreviousMonth()" title="Previous Month">
+        <span class="material-symbols-outlined">chevron_left</span>
+      </button>
+      <button class="control-button" (click)="goToNextMonth()" title="Next Month">
+        <span class="material-symbols-outlined">chevron_right</span>
+      </button>
+      <button class="control-button today-button" (click)="goToToday()">
+        Today
+      </button>
     </div>
-  
-    <div class="calendar-view-section">
-      <mwl-calendar-month-view
-        *ngIf="view === CalendarView.Month"
-        [viewDate]="viewDate"
-        [events]="events">
-      </mwl-calendar-month-view>
-  
+
+    <h3 class="calendar-title">
+      {{ viewDate | date:'LLLL y' }}
+    </h3>
+
+    <div class="controls-right">
+      </div>
+  </div>
+
+  <div class="calendar-view-section">
+    <mwl-calendar-month-view
+      *ngIf="view === CalendarView.Month"
+      [viewDate]="viewDate"
+      [events]="events">
+    </mwl-calendar-month-view>
+
     </div>
 
 </div>
@@ -38,13 +38,19 @@
     <hr class="receipt-separator">
     <div *ngFor="let event of receiptEventsThisMonth" class="receipt-item">
       <span class="receipt-item-date">{{ event.start | date:'MMM d' }}</span>
-      <span class="receipt-description">{{ event.meta?.category?.name }}</span>
-      <span class="receipt-amount">{{ event.meta?.category?.budget | currency:'CAD':'symbol':'1.2-2' }}</span>
+      <span class="receipt-description">{{ event.meta?.data?.name }}</span>
+      <span
+        class="receipt-amount"
+        [class.income]="event.meta?.type === 'income'"
+        [class.expense]="event.meta?.type === 'expense'">
+          {{ event.meta?.type === 'income' ? '+' : '-' }}
+          {{ getEventAmount(event.meta) | currency:'CAD':'symbol':'1.2-2' }}
+      </span>
     </div>
     <hr class="receipt-separator dashed">
-      <div class="receipt-total">
-        <span class="receipt-description">TOTAL THIS MONTH</span>
-        <span class="receipt-amount">{{ receiptTotalAmount | currency:'CAD':'symbol':'1.2-2' }}</span>
-      </div>
-  </div>
+    <div class="receipt-total">
+      <span class="receipt-description">NET FOR MONTH</span>
+      <span class="receipt-amount">{{ receiptTotalAmount | currency:'CAD':'symbol':'1.2-2' }}</span>
+    </div>
+     </div>
 </div>

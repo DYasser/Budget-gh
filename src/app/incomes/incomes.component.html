@@ -1,0 +1,76 @@
+<div class="income-page-container">
+
+  <div class="input-column" #inputColumn>
+    <h2>{{ editingIncomeSource ? 'Edit Income Source' : 'Add Income Source' }}</h2>
+    <form (ngSubmit)="saveIncomeSource()" class="income-form">
+      <div class="form-group">
+        <label for="incomeName">Source Name:</label>
+        <input #incomeNameInput type="text" id="incomeName" name="incomeName" [(ngModel)]="newIncomeName" placeholder="e.g., Salary, Freelance" required >
+      </div>
+      <div class="form-group">
+        <label for="incomeAmount">Amount:</label>
+        <input type="number" id="incomeAmount" name="incomeAmount" [(ngModel)]="newIncomeAmount" placeholder="e.g., 3000" min="0.01" step="0.01" required >
+      </div>
+      <div class="form-group">
+        <label for="incomeFrequency">Frequency:</label>
+        <select id="incomeFrequency" name="incomeFrequency" [(ngModel)]="newIncomeFrequency" required>
+          <option *ngFor="let freq of budgetFrequencies" [value]="freq"> {{ freq }} </option>
+        </select>
+      </div>
+       <div class="form-group">
+        <label for="incomeReceiveDate">Date / Next Received:</label>
+        <input type="date" id="incomeReceiveDate" name="incomeReceiveDate" [(ngModel)]="newIncomeReceiveDate" required >
+      </div>
+      <div class="form-actions">
+          <button type="submit" class="add-button" [disabled]="isSaving">
+              <span *ngIf="!isSaving">{{ editingIncomeSource ? 'Update Source' : 'Add Source' }}</span>
+              <span *ngIf="isSaving">Saving...</span>
+          </button>
+          <button type="button" class="cancel-button" *ngIf="editingIncomeSource" (click)="cancelEditIncomeSource()" [disabled]="isSaving">
+              Cancel
+          </button>
+      </div>
+    </form>
+  </div>
+
+  <div class="list-column">
+    <h2>Income Sources</h2>
+    <div *ngIf="incomeSources.length === 0" class="empty-list-message">
+      You haven't added any income sources yet.
+    </div>
+
+    <div *ngIf="incomeSources.length > 0" class="income-list">
+      <div *ngFor="let income of incomeSources" class="income-item" [class.editing]="income.id === editingIncomeSource?.id">
+        <div class="income-info">
+          <span class="income-name">{{ income.name }}</span>
+          <span class="income-details">${{ income.amount.toFixed(2) }} / {{ income.frequency }} (Next: {{ income.receiveDate | date:'MMM d, y' }})</span>
+        </div>
+        <div class="income-actions">
+          <button class="action-button edit-button" (click)="editIncomeSource(income)" title="Edit" [disabled]="isSaving || !!editingIncomeSource || isDeleting[income.id]">
+            <span class="material-symbols-outlined">edit</span>
+          </button>
+          <button class="action-button delete-button" (click)="deleteIncomeSource(income.id)" title="Delete" [disabled]="isSaving || isDeleting[income.id]">
+            <span *ngIf="!isDeleting[income.id]" class="material-symbols-outlined">delete</span>
+            <span *ngIf="isDeleting[income.id]">...</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast-container" *ngIf="toastMessage">
+  <div class="toast" [class.toast-success]="toastType === 'success'" [class.toast-error]="toastType === 'error'">
+    {{ toastMessage }}
+  </div>
+</div>
+
+<app-confirmation-dialog
+  [isVisible]="showIncomeDeleteConfirm"
+  [message]="'Delete income source \'' + (incomeSourceToDelete?.name || '...') + '\'? This cannot be undone.'"
+  confirmButtonText="Delete"
+  cancelButtonText="Cancel"
+  (confirm)="confirmIncomeDeletion()"
+  (cancel)="cancelIncomeDeletion()">
+</app-confirmation-dialog>

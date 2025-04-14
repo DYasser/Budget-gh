@@ -4,6 +4,7 @@ import { DashboardComponent } from './dashboard/dashboard.component';
 import { ExpensesComponent } from './expenses/expenses.component';
 import { CalendarComponent } from './calendar/calendar.component';
 import { SettingsComponent } from './settings/settings.component';
+import { IncomesComponent } from './incomes/incomes.component';
 
 export const routes: Routes = [
   {
@@ -30,6 +31,10 @@ export const routes: Routes = [
     path: 'settings', 
     component: SettingsComponent, 
     title: 'Settings - budget.io' 
+  },
+  { path: 'incomes', 
+    component: IncomesComponent, 
+    title: 'Incomes - budget.io' 
   },
   // { path: 'privacy', component: PrivacyPolicyComponent },
   // { path: 'terms', component: TermsComponent },
