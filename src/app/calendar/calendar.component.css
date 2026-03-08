@@ -204,3 +204,162 @@
     text-align: center;
     font-size: 9pt;
 }
+
+.projection-section h2 {
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+  font-weight: 400;
+  font-size: 1.2rem;
+  color: #333;
+  text-align: center;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 0.75rem;
+}
+
+.projection-form {
+  display: flex;
+  flex-wrap: wrap; /* Allow wrapping */
+  gap: 1rem; /* Space between items */
+  align-items: flex-end; /* Align bottoms of inputs/button */
+  margin-bottom: 1.5rem;
+}
+
+.projection-form .form-group {
+  flex: 1 1 180px; /* Allow grow/shrink, base width */
+  min-width: 150px;
+}
+
+.projection-form label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  font-size: 0.9rem;
+  color: #555;
+  text-align: left;
+}
+
+.projection-form input[type="number"],
+.projection-form input[type="date"] {
+  width: 100%;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid #dcdcdc;
+  border-radius: 5px;
+  font-size: 1rem;
+  box-sizing: border-box;
+  background-color: #fff;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  font-family: inherit;
+}
+
+.projection-form input:focus {
+  border-color: var(--app-accent-color, #007bff);
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.15);
+  outline: none;
+}
+
+.calculate-button-container {
+  margin-top: 1.5rem; /* Space above button */
+  text-align: center; /* Center button within the container */
+  width: 100%;
+}
+
+/* New Minimalistic Ghost Button Style */
+.calculate-button {
+  display: inline-block; /* Allow text-align:center to work */
+  padding: 0.7rem 2rem;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--app-accent-color, #007bff); /* Accent color text */
+  background-color: transparent;
+  border: 1px solid var(--app-accent-color, #007bff); /* Accent color border */
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.2s ease-out;
+  min-width: 150px; /* Give it some minimum width */
+}
+
+.calculate-button:hover:not(:disabled),
+.calculate-button:focus:not(:disabled) {
+  background-color: var(--app-accent-color, #007bff); /* Fill on hover/focus */
+  color: #fff; /* White text */
+  box-shadow: 0 3px 8px rgba(0, 123, 255, 0.15); /* Optional subtle shadow */
+  transform: translateY(-1px); /* Optional lift */
+  outline: none;
+}
+
+.calculate-button:active:not(:disabled) {
+   transform: translateY(0px);
+   box-shadow: none;
+   background-color: var(--app-accent-color-dark, #0056b3); /* Darker press */
+   border-color: var(--app-accent-color-dark, #0056b3);
+   transition-duration: 0.05s;
+}
+
+.calculate-button:disabled {
+  border-color: #adb5bd; /* Grey border */
+  color: #adb5bd; /* Grey text */
+  background-color: transparent;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Style for loading text inside button */
+.calculate-button span {
+  vertical-align: middle;
+}
+
+.projection-result {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background-color: #e9f5ff; /* Light blue background */
+  border: 1px solid #b8d
+}
+
+.projection-form input[type=number]::-webkit-inner-spin-button,
+.projection-form input[type=number]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.projection-form input[type=number] {
+  -moz-appearance: textfield; /* Firefox */
+}
+
+.projection-toggle-area {
+  text-align: center; /* Center the button */
+  margin-top: 2rem; /* Space above toggle button */
+}
+
+.toggle-projection-button {
+  background-color: #f0f0f0;
+  border: 1px solid #d0d0d0;
+  padding: 0.5rem 1.2rem;
+  border-radius: 15px; /* Pill shape */
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: #444;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+  margin-bottom: 1vh;
+}
+.toggle-projection-button:hover {
+  background-color: #e0e0e0;
+  border-color: #b0b0b0;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+.toggle-projection-button .material-symbols-outlined {
+   font-size: 1.2rem;
+}
+
+.projection-section {
+  margin: 0 auto 1rem auto; /* Let animation handle margin-top if needed */
+  padding: 1.5rem;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+  max-width: 500px;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden; /* Needed for height animation */
+}

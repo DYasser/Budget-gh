@@ -1,6 +1,5 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
-import { Firestore, collection, collectionData, doc, addDoc, updateDoc, deleteDoc, query, orderBy } from '@angular/fire/firestore';
 import { parseISO, lastDayOfMonth, addMonths, addWeeks, addYears, format, startOfDay, endOfDay } from 'date-fns';
 import { CalendarEvent } from 'angular-calendar';
 
@@ -24,23 +23,6 @@ export interface IncomeSource {
   receiveDate: string;
 }
 
-interface ExpenseCategoryData {
-  name: string;
-  budget: number;
-  frequency: BudgetFrequency;
-  dueDate: string;
-  isDueEndOfMonth?: boolean;
-}
-
-interface IncomeSourceData {
-  name: string;
-  amount: number;
-  frequency: BudgetFrequency;
-  receiveDate: string;
-}
-
-interface EventColor { primary: string; secondary: string; }
-
 export type CalendarMetaData = { type: 'expense', data: ExpenseCategory } | { type: 'income', data: IncomeSource };
 
 @Injectable({
@@ -48,12 +30,14 @@ export type CalendarMetaData = { type: 'expense', data: ExpenseCategory } | { ty
 })
 export class BudgetService {
 
-  private firestore: Firestore = inject(Firestore);
-  private categoriesCollection = collection(this.firestore, 'expenseCategories');
-  private incomeSourcesCollection = collection(this.firestore, 'incomeSources');
+  private readonly EXPENSES_KEY = 'budget_io_expenses';
+  private readonly INCOMES_KEY = 'budget_io_incomes';
 
-  categories$: Observable<ExpenseCategory[]>;
-  incomeSources$: Observable<IncomeSource[]>;
+  private _categories$ = new BehaviorSubject<ExpenseCategory[]>(this.loadExpenses());
+  private _incomeSources$ = new BehaviorSubject<IncomeSource[]>(this.loadIncomes());
+
+  categories$: Observable<ExpenseCategory[]> = this._categories$.asObservable();
+  incomeSources$: Observable<IncomeSource[]> = this._incomeSources$.asObservable();
 
   private readonly colorPalette: string[] = [
     '#36A2EB', '#FF6384', '#FFCE56', '#4BC0C0', '#9966FF',
@@ -64,12 +48,30 @@ export class BudgetService {
   private readonly WEEKS_IN_MONTH = 52 / 12;
   private readonly BIWEEKS_IN_MONTH = 26 / 12;
 
+  constructor() {}
 
-  constructor() {
-    const categoriesQuery = query(this.categoriesCollection, orderBy('name'));
-    this.categories$ = collectionData(categoriesQuery, { idField: 'id' }) as Observable<ExpenseCategory[]>;
-    const incomeQuery = query(this.incomeSourcesCollection, orderBy('name'));
-    this.incomeSources$ = collectionData(incomeQuery, { idField: 'id' }) as Observable<IncomeSource[]>;
+  private loadExpenses(): ExpenseCategory[] {
+    try {
+      const raw = localStorage.getItem(this.EXPENSES_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch { return []; }
+  }
+
+  private loadIncomes(): IncomeSource[] {
+    try {
+      const raw = localStorage.getItem(this.INCOMES_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch { return []; }
+  }
+
+  private saveExpenses(data: ExpenseCategory[]): void {
+    localStorage.setItem(this.EXPENSES_KEY, JSON.stringify(data));
+    this._categories$.next(data);
+  }
+
+  private saveIncomes(data: IncomeSource[]): void {
+    localStorage.setItem(this.INCOMES_KEY, JSON.stringify(data));
+    this._incomeSources$.next(data);
   }
 
   getRelevantCategoriesForMonth(categories: ExpenseCategory[], targetDate: Date): ExpenseCategory[] {
@@ -86,7 +88,6 @@ export class BudgetService {
       });
   }
 
-
   calculateTotalMonthlyEquivalentBudget(categories: ExpenseCategory[], targetDate: Date): number {
       const relevantCategories = this.getRelevantCategoriesForMonth(categories, targetDate);
       let totalMonthlyEquivalent = 0;
@@ -102,7 +103,6 @@ export class BudgetService {
           } totalMonthlyEquivalent += monthlyEquivalent;
       }); return totalMonthlyEquivalent;
   }
-
 
   calculateTotalOccurrencesBudgetForMonth(categories: ExpenseCategory[], targetDate: Date): number {
       const targetMonth = targetDate.getMonth(); const targetYear = targetDate.getFullYear();
@@ -196,49 +196,55 @@ export class BudgetService {
     });
 
     generatedEvents.sort((a, b) => a.start.getTime() - b.start.getTime()); return generatedEvents;
- }
+  }
 
- private adjustColorOpacity(color: string, opacity: number): string {
+  private adjustColorOpacity(color: string, opacity: number): string {
       if (color.startsWith('#') && color.length === 7) { const r = parseInt(color.slice(1, 3), 16); const g = parseInt(color.slice(3, 5), 16); const b = parseInt(color.slice(5, 7), 16); return `rgba(${r}, ${g}, ${b}, ${opacity})`; }
       return 'rgba(100, 100, 100, 0.3)';
   }
 
   async addCategory(name: string, budget: number, frequency: BudgetFrequency, dueDate: string, isDueEndOfMonth: boolean): Promise<void> {
     if (!name.trim() || budget === null || budget <= 0 || !dueDate) { throw new Error("Invalid data for adding category"); }
-    const newCategoryData = { name: name.trim(), budget: budget, frequency: frequency, dueDate: dueDate, isDueEndOfMonth: isDueEndOfMonth };
-    try { await addDoc(this.categoriesCollection, newCategoryData); } catch (e) { console.error("Error adding category: ", e); throw e; }
+    const current = this.loadExpenses();
+    current.push({ id: crypto.randomUUID(), name: name.trim(), budget, frequency, dueDate, isDueEndOfMonth });
+    this.saveExpenses(current);
   }
 
   async updateCategory(updatedCategory: ExpenseCategory): Promise<void> {
-     if (!updatedCategory.id || !updatedCategory.dueDate) { throw new Error("Cannot update category without ID or due date"); }
-     const docRef = doc(this.firestore, 'expenseCategories', updatedCategory.id);
-     const updatePayload = { name: updatedCategory.name, budget: updatedCategory.budget, frequency: updatedCategory.frequency, dueDate: updatedCategory.dueDate, isDueEndOfMonth: updatedCategory.isDueEndOfMonth ?? false };
-     try { await updateDoc(docRef, updatePayload); } catch (e) { console.error("Error updating category: ", e); throw e; }
+    if (!updatedCategory.id || !updatedCategory.dueDate) { throw new Error("Cannot update category without ID or due date"); }
+    const current = this.loadExpenses();
+    const index = current.findIndex(c => c.id === updatedCategory.id);
+    if (index === -1) { throw new Error("Category not found"); }
+    current[index] = { ...updatedCategory };
+    this.saveExpenses(current);
   }
 
   async deleteCategory(id: string): Promise<void> {
     if (!id) { throw new Error("Cannot delete category without ID"); }
-    const docRef = doc(this.firestore, 'expenseCategories', id);
-    try { await deleteDoc(docRef); } catch (e) { console.error("Error deleting category: ", e); throw e; }
+    const current = this.loadExpenses();
+    this.saveExpenses(current.filter(c => c.id !== id));
   }
 
   async addIncomeSource(name: string, amount: number, frequency: BudgetFrequency, receiveDate: string): Promise<void> {
     if (!name.trim() || amount === null || amount <= 0 || !receiveDate) { throw new Error("Invalid data for adding income source"); }
-    const newIncomeData = { name: name.trim(), amount: amount, frequency: frequency, receiveDate: receiveDate };
-    try { await addDoc(this.incomeSourcesCollection, newIncomeData); } catch (e) { console.error("Error adding income source: ", e); throw e; }
+    const current = this.loadIncomes();
+    current.push({ id: crypto.randomUUID(), name: name.trim(), amount, frequency, receiveDate });
+    this.saveIncomes(current);
   }
 
   async updateIncomeSource(updatedIncomeSource: IncomeSource): Promise<void> {
     if (!updatedIncomeSource.id || !updatedIncomeSource.receiveDate) { throw new Error("Cannot update income source without ID or receive date"); }
-    const docRef = doc(this.firestore, 'incomeSources', updatedIncomeSource.id);
-    const updatePayload = { name: updatedIncomeSource.name, amount: updatedIncomeSource.amount, frequency: updatedIncomeSource.frequency, receiveDate: updatedIncomeSource.receiveDate };
-    try { await updateDoc(docRef, updatePayload); } catch (e) { console.error("Error updating income source: ", e); throw e; }
+    const current = this.loadIncomes();
+    const index = current.findIndex(i => i.id === updatedIncomeSource.id);
+    if (index === -1) { throw new Error("Income source not found"); }
+    current[index] = { ...updatedIncomeSource };
+    this.saveIncomes(current);
   }
 
   async deleteIncomeSource(id: string): Promise<void> {
     if (!id) { throw new Error("Cannot delete income source without ID"); }
-    const docRef = doc(this.firestore, 'incomeSources', id);
-    try { await deleteDoc(docRef); } catch (e) { console.error("Error deleting income source: ", e); throw e; }
+    const current = this.loadIncomes();
+    this.saveIncomes(current.filter(i => i.id !== id));
   }
 
   public getColorByIndex(index: number): string {
@@ -246,15 +252,10 @@ export class BudgetService {
   }
 
   getCategoriesSnapshot(): ExpenseCategory[] {
-    let currentCategories: ExpenseCategory[] = [];
-    this.categories$.subscribe(cats => currentCategories = cats).unsubscribe(); // Quick subscribe/unsubscribe
-    // Note: A more robust way might involve storing the last emitted value internally
-    return [...currentCategories]; // Return a copy
+    return [...this.loadExpenses()];
   }
 
   getIncomeSourcesSnapshot(): IncomeSource[] {
-      let currentIncomes: IncomeSource[] = [];
-      this.incomeSources$.subscribe(incs => currentIncomes = incs).unsubscribe();
-      return [...currentIncomes];
+    return [...this.loadIncomes()];
   }
 }

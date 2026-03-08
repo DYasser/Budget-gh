@@ -1,11 +1,14 @@
 import { Component, OnInit, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule, CurrencyPipe } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { CalendarModule, CalendarView, CalendarEvent, DateAdapter } from 'angular-calendar';
-import { Subscription, combineLatest, BehaviorSubject } from 'rxjs'; // Import BehaviorSubject, combineLatest
+import { Subscription, combineLatest } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { trigger, state, style, transition, animate } from '@angular/animations'; // Import animation functions
 import {
   addMonths, subMonths, lastDayOfMonth, parseISO, addWeeks, addYears, startOfMonth, endOfMonth,
-  startOfWeek, endOfWeek, isWithinInterval, addDays, getMonth, getYear, format, startOfDay, endOfDay
+  startOfWeek, endOfWeek, isWithinInterval, addDays, getMonth, getYear, format, startOfDay, endOfDay,
+  add
 } from 'date-fns';
 import { getMonthView } from 'calendar-utils';
 import { BudgetService, ExpenseCategory, IncomeSource, CalendarMetaData } from '../budget.service';
@@ -15,23 +18,40 @@ interface EventColor { primary: string; secondary: string; }
 @Component({
   selector: 'app-calendar',
   standalone: true,
-  imports: [ CommonModule, CalendarModule, CurrencyPipe ],
+  imports: [ CommonModule, CalendarModule, CurrencyPipe, FormsModule ],
   templateUrl: './calendar.component.html',
   styleUrls: ['./calendar.component.css'],
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  animations: [
+    trigger('slideInOut', [
+      state('in', style({ height: '*', opacity: 1, 'padding-top': '1.5rem', 'margin-top': '2.5rem' })), // Match original padding/margin
+      transition('void => *', [ // ':enter'
+        style({ height: 0, opacity: 0, 'padding-top': 0, 'margin-top': 0 }),
+        animate('300ms ease-out')
+      ]),
+      transition('* => void', [ // ':leave'
+        animate('300ms ease-in', style({ height: 0, opacity: 0, 'padding-top': 0, 'margin-top': 0 }))
+      ])
+    ])
+  ]
 })
 export class CalendarComponent implements OnInit, OnDestroy {
 
   view: CalendarView = CalendarView.Month;
   CalendarView = CalendarView;
-
-  private viewDateSubject = new BehaviorSubject<Date>(new Date());
-  viewDate$ = this.viewDateSubject.asObservable(); // Observable stream of the date
-
+  viewDate: Date = new Date();
   events: CalendarEvent<CalendarMetaData>[] = [];
   receiptEventsThisMonth: CalendarEvent<CalendarMetaData>[] = [];
+  allCategories: ExpenseCategory[] = [];
+  allIncomes: IncomeSource[] = [];
   private dataSubscription!: Subscription;
   receiptTotalAmount: number = 0;
+
+  currentSavings: number | null = null;
+  projectionTargetDate: string = '';
+  projectedSavings: number | null = null;
+  isCalculatingProjection: boolean = false;
+  showProjectionCalculator: boolean = false; // Flag to control visibility
 
   constructor(
     private budgetService: BudgetService,
@@ -39,19 +59,16 @@ export class CalendarComponent implements OnInit, OnDestroy {
     private dateAdapter: DateAdapter
   ) {}
 
-  // Getter to easily access the current date value in template if needed
-  get viewDate(): Date {
-    return this.viewDateSubject.getValue();
-  }
-
   ngOnInit(): void {
+    this.projectionTargetDate = this.getDefaultProjectionDate();
     this.dataSubscription = combineLatest([
       this.budgetService.categories$,
-      this.budgetService.incomeSources$,
-      this.viewDate$ // Combine with the date stream
+      this.budgetService.incomeSources$
     ]).pipe(
-      map(([categories, incomeSources, viewDate]) => {
-        this.refreshCalendarData(categories, incomeSources, viewDate); // Pass date explicitly
+      map(([categories, incomeSources]) => {
+        this.allCategories = categories;
+        this.allIncomes = incomeSources;
+        this.refreshCalendarData(categories, incomeSources);
       })
     ).subscribe(() => {
        this.cdr.markForCheck();
@@ -64,35 +81,39 @@ export class CalendarComponent implements OnInit, OnDestroy {
     }
   }
 
-  private getViewPeriod(dateForView: Date): { viewStart: Date, viewEnd: Date } { // Accept date
+  getDefaultProjectionDate(): string {
+    const today = new Date();
+    const nextMonth = addMonths(today, 1);
+    const targetDate = endOfMonth(nextMonth);
+    const month = (targetDate.getMonth() + 1).toString().padStart(2, '0');
+    const day = targetDate.getDate().toString().padStart(2, '0');
+    return `${targetDate.getFullYear()}-${month}-${day}`;
+  }
+
+  private getViewPeriod(): { viewStart: Date, viewEnd: Date } {
      if (this.view === CalendarView.Month) {
-        const view = getMonthView(this.dateAdapter, { events: [], viewDate: dateForView, weekStartsOn: 0 });
+        const view = getMonthView(this.dateAdapter, { events: [], viewDate: this.viewDate, weekStartsOn: 0 });
         return { viewStart: view.period.start, viewEnd: view.period.end };
      } else if (this.view === CalendarView.Week) {
-        const viewStart = startOfWeek(dateForView); const viewEnd = endOfWeek(dateForView);
+        const viewStart = startOfWeek(this.viewDate); const viewEnd = endOfWeek(this.viewDate);
         return { viewStart, viewEnd };
      } else {
-        return { viewStart: startOfDay(dateForView), viewEnd: endOfDay(dateForView) };
+        return { viewStart: startOfDay(this.viewDate), viewEnd: endOfDay(this.viewDate) };
      }
   }
 
-  private refreshCalendarData(categories: ExpenseCategory[], incomeSources: IncomeSource[], currentViewDate: Date): void { // Accept date
+  private refreshCalendarData(categories: ExpenseCategory[], incomeSources: IncomeSource[]): void {
     if (!categories || !incomeSources) {
         this.events = []; this.receiptEventsThisMonth = []; this.receiptTotalAmount = 0; return;
     };
-
-    const viewPeriod = this.getViewPeriod(currentViewDate); // Use passed-in date
-    const currentViewMonth = currentViewDate.getMonth();
-    const currentViewYear = currentViewDate.getFullYear();
-
-    // Call service method - it needs the full lists
+    const viewPeriod = this.getViewPeriod();
+    const currentViewMonth = this.viewDate.getMonth();
+    const currentViewYear = this.viewDate.getFullYear();
     this.events = this.budgetService.getCalendarEventsForPeriod(categories, incomeSources, { start: viewPeriod.viewStart, end: viewPeriod.viewEnd });
-
     this.receiptEventsThisMonth = this.events.filter(event => {
         try { return event.start.getMonth() === currentViewMonth && event.start.getFullYear() === currentViewYear; }
         catch { return false; }
     });
-
     this.receiptTotalAmount = this.receiptEventsThisMonth.reduce((sum, event) => {
         const amount = event.meta?.data ? ('budget' in event.meta.data ? event.meta.data.budget : event.meta.data.amount) : 0;
         if(event.meta?.type === 'income') { return sum + (amount || 0); }
@@ -101,40 +122,51 @@ export class CalendarComponent implements OnInit, OnDestroy {
     }, 0);
   }
 
-  setView(view: CalendarView): void {
-      this.view = view;
-      // Optional: Trigger refresh immediately if view change affects period differently
-      // than just date change, otherwise combineLatest handles it via viewDate potentially
-      // this.refreshCalendarData(this.budgetService.getCategoriesSnapshot(), this.budgetService.getIncomeSourcesSnapshot());
-      // For now, let's assume changing viewDate (if needed) is enough
+  calculateProjection(): void {
+    if (this.currentSavings === null || !this.projectionTargetDate) {
+      alert('Please enter your current savings amount and a target date.'); return;
+    }
+    this.isCalculatingProjection = true;
+    this.projectedSavings = null;
+    try {
+      const startDate = startOfDay(new Date());
+      const targetDate = endOfDay(parseISO(this.projectionTargetDate));
+      if (isNaN(targetDate.getTime()) || targetDate <= startDate) {
+        alert('Please select a valid future date for the projection.'); this.isCalculatingProjection = false; return;
+      }
+      const projectionPeriod = { start: startDate, end: targetDate };
+      const eventsInProjection = this.budgetService.getCalendarEventsForPeriod(this.allCategories, this.allIncomes, projectionPeriod);
+      let netChange = 0;
+      eventsInProjection.forEach(event => {
+         const amount = event.meta?.data ? ('budget' in event.meta.data ? event.meta.data.budget : event.meta.data.amount) : 0;
+         if(event.meta?.type === 'income') { netChange += (amount || 0); }
+         else if (event.meta?.type === 'expense') { netChange -= (amount || 0); }
+      });
+      this.projectedSavings = this.currentSavings + netChange;
+    } catch (error) { console.error("Error calculating projection:", error); alert("An error occurred while calculating the projection.");
+    } finally { this.isCalculatingProjection = false; this.cdr.markForCheck(); }
   }
 
   getEventAmount(meta: CalendarMetaData | undefined): number {
     if (!meta?.data) { return 0; }
-    if (meta.type === 'income') {
-        return (meta.data as IncomeSource).amount;
-    } else if (meta.type === 'expense') {
-        return (meta.data as ExpenseCategory).budget;
-    }
+    if (meta.type === 'income') { return (meta.data as IncomeSource).amount; }
+    else if (meta.type === 'expense') { return (meta.data as ExpenseCategory).budget; }
     return 0;
   }
 
-  // Navigation methods ONLY update the viewDateSubject
-  goToPreviousMonth(): void {
-    this.viewDateSubject.next(subMonths(this.viewDateSubject.getValue(), 1));
+  toggleProjectionCalculator(): void { // New toggle method
+    this.showProjectionCalculator = !this.showProjectionCalculator;
+    if (!this.showProjectionCalculator) {
+      this.projectedSavings = null; // Reset result when hiding
+    }
   }
 
-  goToNextMonth(): void {
-    this.viewDateSubject.next(addMonths(this.viewDateSubject.getValue(), 1));
-  }
-
+  setView(view: CalendarView): void { this.view = view; this.refreshCalendarData(this.allCategories, this.allIncomes); }
+  goToPreviousMonth(): void { this.viewDate = subMonths(this.viewDate, 1); this.refreshCalendarData(this.allCategories, this.allIncomes); }
+  goToNextMonth(): void { this.viewDate = addMonths(this.viewDate, 1); this.refreshCalendarData(this.allCategories, this.allIncomes); }
   goToToday(): void {
     const today = new Date();
-    const current = this.viewDateSubject.getValue();
-    // Avoid emitting if already on today's month/year in month view
-    if (this.view === CalendarView.Month && current.getMonth() === today.getMonth() && current.getFullYear() === today.getFullYear()){
-         return;
-    }
-    this.viewDateSubject.next(today);
+    if (this.viewDate.getMonth() === today.getMonth() && this.viewDate.getFullYear() === today.getFullYear()) { return; };
+    this.viewDate = today; this.refreshCalendarData(this.allCategories, this.allIncomes);
   }
 }

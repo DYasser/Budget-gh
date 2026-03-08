@@ -3,9 +3,6 @@ import { provideRouter } from '@angular/router';
 import { provideAnimations } from '@angular/platform-browser/animations';
 import { routes } from './app.routes';
 
-import { provideFirebaseApp, initializeApp } from '@angular/fire/app';
-import { provideFirestore, getFirestore } from '@angular/fire/firestore';
-
 import {
     Chart,
     DoughnutController, ArcElement,
@@ -18,9 +15,6 @@ import { CalendarA11y, CalendarDateFormatter, DateAdapter, CalendarEventTitleFor
 import { adapterFactory } from 'angular-calendar/date-adapters/date-fns'; 
 import { CalendarUtils } from 'angular-calendar'; 
 import { CommonModule, I18nPluralPipe } from '@angular/common';
-import { environment } from '../environments/environment';
-
-
 Chart.register(
     DoughnutController,
     BarController,
@@ -39,10 +33,6 @@ export const appConfig: ApplicationConfig = {
     importProvidersFrom(CommonModule),
     provideRouter(routes),
     provideAnimations(),
-
-    provideFirebaseApp(() => initializeApp(environment.firebase)),
-
-    provideFirestore(() => getFirestore()),
 
     { provide: DateAdapter, useFactory: adapterFactory },
     CalendarUtils,

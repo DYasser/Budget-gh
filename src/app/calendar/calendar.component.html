@@ -11,13 +11,11 @@
         Today
       </button>
     </div>
-
     <h3 class="calendar-title">
       {{ viewDate | date:'LLLL y' }}
     </h3>
-
     <div class="controls-right">
-      </div>
+    </div>
   </div>
 
   <div class="calendar-view-section">
@@ -26,9 +24,7 @@
       [viewDate]="viewDate"
       [events]="events">
     </mwl-calendar-month-view>
-
-    </div>
-
+   </div>
 </div>
 
 <div class="receipt-display-area" *ngIf="receiptEventsThisMonth.length > 0">
@@ -53,4 +49,40 @@
       <span class="receipt-amount">{{ receiptTotalAmount | currency:'CAD':'symbol':'1.2-2' }}</span>
     </div>
      </div>
+</div>
+
+<div class="projection-toggle-area">
+  <button class="toggle-projection-button" (click)="toggleProjectionCalculator()">
+     <span class="material-symbols-outlined">
+       {{ showProjectionCalculator ? 'expand_less' : 'savings' }}
+     </span>
+     {{ showProjectionCalculator ? 'Hide Projection Calculator' : 'Savings Projection' }}
+  </button>
+</div>
+
+<div class="projection-section" *ngIf="showProjectionCalculator" [@slideInOut]>
+  <h2>Savings Projection</h2>
+  <div class="projection-form">
+      <div class="form-group">
+          <label for="currentSavings">Current Savings ($):</label>
+          <input type="number" id="currentSavings" name="currentSavings" placeholder="Amount you have now" [(ngModel)]="currentSavings" min="0" step="any" required>
+      </div>
+      <div class="form-group">
+          <label for="projectionDate">Project Until:</label>
+          <input type="date" id="projectionDate" name="projectionDate" [(ngModel)]="projectionTargetDate" required>
+      </div>
+      </div>
+  <div class="calculate-button-container">
+    <button class="calculate-button" (click)="calculateProjection()" [disabled]="isCalculatingProjection || currentSavings === null || !projectionTargetDate">
+        <span *ngIf="!isCalculatingProjection">Calculate Projection</span>
+        <span *ngIf="isCalculatingProjection">Calculating...</span>
+    </button>
+  </div>
+  <div class="projection-result" *ngIf="projectedSavings !== null">
+      Projected amount on {{ projectionTargetDate | date:'MMM d, y' }}:
+      <strong>{{ projectedSavings | currency:'CAD':'symbol':'1.2-2' }}</strong>
+  </div>
+  <div class="projection-result" *ngIf="isCalculatingProjection && projectedSavings === null">
+      Calculating projection...
+  </div>
 </div>
