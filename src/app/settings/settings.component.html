@@ -1,5 +1,47 @@
 <div class="settings-container">
-    <h1>Settings</h1>
-    <p>Manage your application preferences and account settings.</p>
-    <p><em>(Settings form/options will go here later)</em></p>
+  <h1>Settings</h1>
+
+  <!-- Section 1: Currency -->
+  <section class="settings-section">
+    <h2 class="section-header"><span class="material-symbols-outlined">currency_exchange</span> Currency</h2>
+    <div class="setting-row">
+      <label for="currencySelect" class="setting-label">Display Currency</label>
+      <select id="currencySelect" class="currency-select" [(ngModel)]="selectedCurrency" (ngModelChange)="onCurrencyChange($event)">
+        <option *ngFor="let c of currencies" [value]="c.code">{{ c.label }}</option>
+      </select>
+    </div>
+  </section>
+
+  <!-- Section 2: Data Management -->
+  <section class="settings-section">
+    <h2 class="section-header"><span class="material-symbols-outlined">database</span> Data Management</h2>
+
+    <div class="subsection">
+      <h3 class="subsection-header">Export</h3>
+      <div class="button-group">
+        <button class="settings-btn export-btn" (click)="exportAll()"><span class="material-symbols-outlined">download</span> Export All Data</button>
+        <button class="settings-btn export-btn" (click)="exportExpenses()"><span class="material-symbols-outlined">receipt_long</span> Export Expenses</button>
+        <button class="settings-btn export-btn" (click)="exportIncomes()"><span class="material-symbols-outlined">savings</span> Export Incomes</button>
+      </div>
+    </div>
+
+    <div class="subsection">
+      <h3 class="subsection-header">Import</h3>
+      <p class="import-note">Import a previously exported JSON file. Existing data will be overwritten.</p>
+      <label class="settings-btn import-btn" for="fileInput"><span class="material-symbols-outlined">upload_file</span> Choose File to Import</label>
+      <input #fileInput type="file" id="fileInput" accept=".json" (change)="onFileSelected($event)" style="display:none">
+      <div *ngIf="importStatusMessage" class="import-status" [class.success]="importStatusType === 'success'" [class.error]="importStatusType === 'error'">
+        {{ importStatusMessage }}
+      </div>
+    </div>
+  </section>
+
+  <app-confirmation-dialog
+    [isVisible]="showImportConfirm"
+    [message]="importConfirmMessage"
+    confirmButtonText="Import & Overwrite"
+    cancelButtonText="Cancel"
+    (confirm)="confirmImport()"
+    (cancel)="cancelImport()">
+  </app-confirmation-dialog>
 </div>

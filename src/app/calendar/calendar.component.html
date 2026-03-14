@@ -40,13 +40,13 @@
         [class.income]="event.meta?.type === 'income'"
         [class.expense]="event.meta?.type === 'expense'">
           {{ event.meta?.type === 'income' ? '+' : '-' }}
-          {{ getEventAmount(event.meta) | currency:'CAD':'symbol':'1.2-2' }}
+          {{ getEventAmount(event.meta) | currency:currencyCode:'symbol':'1.2-2' }}
       </span>
     </div>
     <hr class="receipt-separator dashed">
     <div class="receipt-total">
       <span class="receipt-description">NET FOR MONTH</span>
-      <span class="receipt-amount">{{ receiptTotalAmount | currency:'CAD':'symbol':'1.2-2' }}</span>
+      <span class="receipt-amount">{{ receiptTotalAmount | currency:currencyCode:'symbol':'1.2-2' }}</span>
     </div>
      </div>
 </div>
@@ -80,7 +80,7 @@
   </div>
   <div class="projection-result" *ngIf="projectedSavings !== null">
       Projected amount on {{ projectionTargetDate | date:'MMM d, y' }}:
-      <strong>{{ projectedSavings | currency:'CAD':'symbol':'1.2-2' }}</strong>
+      <strong>{{ projectedSavings | currency:currencyCode:'symbol':'1.2-2' }}</strong>
   </div>
   <div class="projection-result" *ngIf="isCalculatingProjection && projectedSavings === null">
       Calculating projection...

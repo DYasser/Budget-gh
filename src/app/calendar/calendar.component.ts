@@ -45,6 +45,8 @@ export class CalendarComponent implements OnInit, OnDestroy {
   allCategories: ExpenseCategory[] = [];
   allIncomes: IncomeSource[] = [];
   private dataSubscription!: Subscription;
+  private currencySubscription!: Subscription;
+  currencyCode: string = 'CAD';
   receiptTotalAmount: number = 0;
 
   currentSavings: number | null = null;
@@ -73,12 +75,14 @@ export class CalendarComponent implements OnInit, OnDestroy {
     ).subscribe(() => {
        this.cdr.markForCheck();
     });
+    this.currencySubscription = this.budgetService.currency$.subscribe(code => { this.currencyCode = code; this.cdr.markForCheck(); });
   }
 
   ngOnDestroy(): void {
     if (this.dataSubscription) {
       this.dataSubscription.unsubscribe();
     }
+    if (this.currencySubscription) { this.currencySubscription.unsubscribe(); }
   }
 
   getDefaultProjectionDate(): string {

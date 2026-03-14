@@ -20,7 +20,7 @@ export class FooterComponent {
 
   // Listen for scroll events on the window
   @HostListener('window:scroll', ['$event'])
-  checkScroll() {
+  checkScroll(_event?: Event) {
     const componentPosition = this.el.nativeElement.offsetTop;
     const scrollPosition = window.pageYOffset + window.innerHeight;
     // Threshold: How close to the footer appearing should trigger the effect?

@@ -22,7 +22,9 @@ export class ExpensesComponent implements OnInit, OnDestroy {
   @ViewChild('categoryNameInput') categoryNameInputRef!: ElementRef<HTMLInputElement>;
 
   expenseCategories: ExpenseCategory[] = [];
+  currencyCode: string = 'CAD';
   private categoriesSubscription!: Subscription;
+  private currencySubscription!: Subscription;
 
   isSaving: boolean = false; 
   isDeleting: { [key: string]: boolean } = {};
@@ -67,6 +69,7 @@ export class ExpensesComponent implements OnInit, OnDestroy {
       this.expenseCategories = categories;
       this.calculateCurrentMonthProportions();
     });
+    this.currencySubscription = this.budgetService.currency$.subscribe(code => { this.currencyCode = code; this.cdr.detectChanges(); });
     this.newTransactionDate = this.getTodayDateString();
     this.newCategoryDueDate = this.getTodayDateString();
     this.newCategoryIsDueEndOfMonth = false;
@@ -76,6 +79,7 @@ export class ExpensesComponent implements OnInit, OnDestroy {
       if (this.categoriesSubscription) {
           this.categoriesSubscription.unsubscribe();
       }
+      if (this.currencySubscription) { this.currencySubscription.unsubscribe(); }
   }
 
   getTodayDateString(): string {

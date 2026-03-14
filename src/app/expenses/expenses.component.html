@@ -112,7 +112,7 @@
 
    <div class="budget-percentage-bars" *ngIf="categoryProportions.length > 0">
     <div class="proportions-header">
-      <span class="proportions-total">Total: {{ currentMonthTotalEquivalentBudget | currency:'CAD':'symbol':'1.0-0' }}</span>
+      <span class="proportions-total">Total: {{ currentMonthTotalEquivalentBudget | currency:currencyCode:'symbol':'1.0-0' }}</span>
     </div>
     <h2 class="percentage-title">Expenses Proportions: {{ currentMonthName }}</h2>
     <div *ngFor="let item of categoryProportions" class="percentage-item">

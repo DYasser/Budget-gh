@@ -4,7 +4,8 @@
       "Bash(node --version)",
       "Bash(npm --version)",
       "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(d.get\\(''lockfileVersion'',''?''\\)\\); print\\(d[''packages''][''''][''engines''] if ''engines'' in d[''packages''][''''] else ''no engines field''\\)\")",
-      "Bash(npx ng build --base-href /Budget-io/)"
+      "Bash(npx ng build --base-href /Budget-io/)",
+      "Bash(npx ng:*)"
     ]
   }
 }

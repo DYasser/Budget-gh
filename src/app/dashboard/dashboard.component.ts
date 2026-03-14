@@ -37,6 +37,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   totalBudget: number = 0;
   chartDateRangeTitle: string = '';
+  currencyCode: string = 'CAD';
+  mobileNavOpen: boolean = false;
+  mobileNavClosing: boolean = false;
+  private currencySubscription!: Subscription;
 
   public doughnutChartLabels: string[] = [];
   public doughnutChartDatasets: ChartConfiguration<'doughnut'>['data']['datasets'] = [
@@ -71,6 +75,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       this.timerHandle = setTimeout(() => { if (this.showWelcome) { this.showWelcome = false; } }, 3000);
     }
     this.categoriesSubscription = this.budgetService.categories$.subscribe(categories => { this.updateDashboardChart(categories); });
+    this.currencySubscription = this.budgetService.currency$.subscribe(code => { this.currencyCode = code; this.cdr.detectChanges(); });
     if (window.visualViewport) {
       this.boundResizeHandler = this.handleViewportResize.bind(this);
       window.visualViewport.addEventListener('resize', this.boundResizeHandler);
@@ -81,6 +86,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     if (this.timerHandle) { clearTimeout(this.timerHandle); }
     clearTimeout(this.resizeTimeout);
     if (this.categoriesSubscription) { this.categoriesSubscription.unsubscribe(); }
+    if (this.currencySubscription) { this.currencySubscription.unsubscribe(); }
     if (this.boundResizeHandler && window.visualViewport) { window.visualViewport.removeEventListener('resize', this.boundResizeHandler); }
   }
 
@@ -153,5 +159,16 @@ export class DashboardComponent implements OnInit, OnDestroy {
     }
   }
 
-  goTo(page: string): void { const targetRoute = `/${page}`; this.router.navigate([targetRoute]); }
+  toggleMobileNav(): void { this.mobileNavOpen ? this.closeMobileNav() : (this.mobileNavOpen = true); }
+
+  closeMobileNav(): void {
+    if (!this.mobileNavOpen) { return; }
+    this.mobileNavClosing = true;
+    setTimeout(() => { this.mobileNavOpen = false; this.mobileNavClosing = false; this.cdr.detectChanges(); }, 300);
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscape(): void { if (this.mobileNavOpen) { this.closeMobileNav(); } }
+
+  goTo(page: string): void { this.closeMobileNav(); const targetRoute = `/${page}`; this.router.navigate([targetRoute]); }
 }

@@ -311,8 +311,12 @@
 .projection-result {
   margin-top: 1.5rem;
   padding: 1rem;
-  background-color: #e9f5ff; /* Light blue background */
-  border: 1px solid #b8d
+  background-color: #e9f5ff;
+  border: 1px solid #b8dcff;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  color: #333;
+  text-align: center;
 }
 
 .projection-form input[type=number]::-webkit-inner-spin-button,
@@ -362,4 +366,106 @@
   width: 100%;
   box-sizing: border-box;
   overflow: hidden; /* Needed for height animation */
+}
+
+@media (max-width: 900px) {
+  :host {
+    padding-top: 60px;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    padding-bottom: 2rem;
+  }
+
+  .calendar-page-container {
+    max-height: none;
+    overflow: visible;
+    margin-top: 1rem;
+    border-radius: 10px;
+  }
+
+  .controls-right {
+    min-width: 0;
+  }
+
+  .calendar-title {
+    font-size: 1rem;
+  }
+
+  .calendar-view-section {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .calendar-view-section .cal-month-view .cal-header .cal-cell {
+    font-size: 0.7rem;
+    padding: 4px 2px;
+  }
+
+  .calendar-view-section .cal-month-view .cal-cell-row .cal-cell {
+    min-height: 60px;
+  }
+
+  .calendar-view-section .cal-month-view .cal-day-number {
+    font-size: 0.8rem;
+    margin-top: 4px;
+    margin-right: 4px;
+  }
+
+  .calendar-view-section .cal-month-view .cal-event {
+    font-size: 0.65rem;
+    height: 12px;
+  }
+
+  .receipt-display-area {
+    padding-left: 0;
+    padding-right: 0;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .receipt {
+    font-size: 9pt;
+    padding: 12px 10px;
+  }
+
+  .receipt-item {
+    grid-template-columns: 50px 1fr auto;
+    font-size: 8pt;
+    gap: 0.3rem;
+  }
+
+  .projection-toggle-area {
+    margin-top: 1.25rem;
+  }
+
+  .toggle-projection-button {
+    width: 100%;
+    justify-content: center;
+    box-sizing: border-box;
+  }
+
+  .projection-section {
+    padding: 1.25rem;
+    max-width: 100%;
+  }
+
+  .projection-form {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .projection-form .form-group {
+    flex: 1 1 auto;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .calculate-button {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .projection-result {
+    font-size: 0.9rem;
+  }
 }

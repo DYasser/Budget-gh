@@ -1,25 +1,52 @@
 <div *ngIf="showWelcome" class="welcome-container" [@fade] (@fade.done)="onWelcomeFadeDone($event)">
     <h1>Welcome</h1>
 </div>
-  
-<div class="dashboard-nav-trigger-area" *ngIf="showChart" [@fade]>
 
-  <span class="nav-open-indicator material-symbols-outlined">
-    chevron_right
-  </span>
+<button class="hamburger-btn" *ngIf="showChart" (click)="toggleMobileNav()" [class.is-open]="mobileNavOpen" aria-label="Open menu">
+  <span class="material-symbols-outlined">{{ mobileNavOpen ? 'close' : 'menu' }}</span>
+</button>
+
+<div class="dashboard-nav-trigger-area" *ngIf="showChart" [@fade] [class.mobile-open]="mobileNavOpen" [class.mobile-closing]="mobileNavClosing">
+
+  <div class="nav-backdrop" (click)="closeMobileNav()"></div>
+
+  <div class="nav-hover-hint">
+    <span class="material-symbols-outlined">chevron_right</span>
+    <span class="hint-text">Hover</span>
+  </div>
+
+  <div class="nav-drawer-header">
+    <span class="nav-drawer-logo">budget.io</span>
+  </div>
 
   <nav class="dashboard-nav">
-    <button class="nav-button" (click)="goTo('incomes')"> 
-        <span class="material-symbols-outlined">savings</span> Incomes
+    <button class="nav-button" (click)="goTo('incomes')">
+      <span class="nav-icon-badge income-badge">
+        <span class="material-symbols-outlined">savings</span>
+      </span>
+      <span class="nav-label">Incomes</span>
+      <span class="material-symbols-outlined nav-arrow">chevron_right</span>
     </button>
     <button class="nav-button" (click)="goTo('expenses')">
-      <span class="material-symbols-outlined">receipt_long</span> Expenses
+      <span class="nav-icon-badge expense-badge">
+        <span class="material-symbols-outlined">receipt_long</span>
+      </span>
+      <span class="nav-label">Expenses</span>
+      <span class="material-symbols-outlined nav-arrow">chevron_right</span>
     </button>
     <button class="nav-button" (click)="goTo('calendar')">
-      <span class="material-symbols-outlined">calendar_month</span> Calendar
+      <span class="nav-icon-badge calendar-badge">
+        <span class="material-symbols-outlined">calendar_month</span>
+      </span>
+      <span class="nav-label">Calendar</span>
+      <span class="material-symbols-outlined nav-arrow">chevron_right</span>
     </button>
     <button class="nav-button" (click)="goTo('settings')">
-      <span class="material-symbols-outlined">settings</span> Settings
+      <span class="nav-icon-badge settings-badge">
+        <span class="material-symbols-outlined">settings</span>
+      </span>
+      <span class="nav-label">Settings</span>
+      <span class="material-symbols-outlined nav-arrow">chevron_right</span>
     </button>
   </nav>
 </div>
@@ -34,7 +61,7 @@
             [legend]="false">
     </canvas>
     <div class="chart-center-text">
-      {{ totalBudget | currency:'CAD':'symbol':'1.0-0' }}
+      {{ totalBudget | currency:currencyCode:'symbol':'1.0-0' }}
     </div>
   </div>
   <div class="custom-legend-dashboard" *ngIf="doughnutChartLabels.length > 0">

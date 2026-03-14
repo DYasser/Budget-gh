@@ -32,12 +32,15 @@ export class BudgetService {
 
   private readonly EXPENSES_KEY = 'budget_io_expenses';
   private readonly INCOMES_KEY = 'budget_io_incomes';
+  private readonly CURRENCY_KEY = 'budget_io_currency';
 
   private _categories$ = new BehaviorSubject<ExpenseCategory[]>(this.loadExpenses());
   private _incomeSources$ = new BehaviorSubject<IncomeSource[]>(this.loadIncomes());
+  private _currency$ = new BehaviorSubject<string>(this.loadCurrency());
 
   categories$: Observable<ExpenseCategory[]> = this._categories$.asObservable();
   incomeSources$: Observable<IncomeSource[]> = this._incomeSources$.asObservable();
+  currency$: Observable<string> = this._currency$.asObservable();
 
   private readonly colorPalette: string[] = [
     '#36A2EB', '#FF6384', '#FFCE56', '#4BC0C0', '#9966FF',
@@ -257,5 +260,26 @@ export class BudgetService {
 
   getIncomeSourcesSnapshot(): IncomeSource[] {
     return [...this.loadIncomes()];
+  }
+
+  private loadCurrency(): string {
+    return localStorage.getItem(this.CURRENCY_KEY) ?? 'CAD';
+  }
+
+  getCurrencySnapshot(): string {
+    return this._currency$.getValue();
+  }
+
+  setCurrency(code: string): void {
+    localStorage.setItem(this.CURRENCY_KEY, code);
+    this._currency$.next(code);
+  }
+
+  replaceExpenses(data: ExpenseCategory[]): void {
+    this.saveExpenses(data);
+  }
+
+  replaceIncomes(data: IncomeSource[]): void {
+    this.saveIncomes(data);
   }
 }
