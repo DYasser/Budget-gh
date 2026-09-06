@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
-import { parseISO, lastDayOfMonth, addMonths, addWeeks, addYears, format, startOfDay, endOfDay } from 'date-fns';
+import { parseISO, lastDayOfMonth, addMonths, addWeeks, addYears, format, startOfDay, endOfDay, startOfMonth, endOfMonth } from 'date-fns';
 import { CalendarEvent } from 'angular-calendar';
 
 export type BudgetFrequency = 'Monthly' | 'Weekly' | 'Bi-Weekly' | 'Quarterly' | 'Annually' | 'One-Time';
@@ -50,6 +50,8 @@ export class BudgetService {
   private readonly incomeColorPalette: string[] = [ '#36A2EB', '#4BC0C0', '#7CFFC4', '#9966FF', '#BDB2FF' ];
   private readonly WEEKS_IN_MONTH = 52 / 12;
   private readonly BIWEEKS_IN_MONTH = 26 / 12;
+  /** Safety valve on rule expansion: ~19 years of weekly occurrences. */
+  private readonly MAX_OCCURRENCES = 1000;
 
   private loadExpenses(): ExpenseCategory[] {
     try {
@@ -76,6 +78,72 @@ export class BudgetService {
   }
 
   /**
+   * Every date on which a recurrence rule falls inside [interval.start, interval.end].
+   *
+   * The single source of truth for when things are due: the calendar, the per-month
+   * totals and any future consumer all expand a rule through here.
+   *
+   * Two details carry the month-length edge cases:
+   *
+   * - Each occurrence is derived from `startDate` plus N periods, never from the
+   *   previous occurrence. A rule starting Jan 31 therefore yields Feb 28 and then
+   *   Mar 31 - stepping occurrence-to-occurrence would clamp to 28 permanently.
+   * - `isDueEndOfMonth` resolves against each target month in turn, so it tracks
+   *   Feb 29 in a leap year and Feb 28 otherwise.
+   *
+   * Returns [] for a rule with no start date, an unparseable start date, or an
+   * interval that ends before the rule begins.
+   */
+  private getOccurrences(
+    rule: { frequency: BudgetFrequency; startDate: string; isDueEndOfMonth?: boolean },
+    interval: { start: Date; end: Date }
+  ): Date[] {
+    if (!rule.startDate) { return []; }
+
+    const startDate = parseISO(rule.startDate);
+    if (isNaN(startDate.getTime())) { return []; }
+
+    const isEndOfMonth = rule.frequency === 'Monthly' && !!rule.isDueEndOfMonth;
+    const occurrences: Date[] = [];
+
+    for (let period = 0; period < this.MAX_OCCURRENCES; period++) {
+      const occurrence = this.occurrenceAt(startDate, rule.frequency, isEndOfMonth, period);
+
+      // Series runs forward from startDate, so once past the window no later
+      // occurrence can qualify - and nothing can precede startDate.
+      if (occurrence > interval.end) { break; }
+      if (occurrence >= interval.start) { occurrences.push(occurrence); }
+      if (rule.frequency === 'One-Time') { break; }
+    }
+
+    return occurrences;
+  }
+
+  /** The date `period` recurrences after `startDate`, clamped to the target month's length. */
+  private occurrenceAt(startDate: Date, frequency: BudgetFrequency, isEndOfMonth: boolean, period: number): Date {
+    if (isEndOfMonth) { return lastDayOfMonth(addMonths(startDate, period)); }
+
+    switch (frequency) {
+      case 'One-Time':  return startDate;
+      case 'Weekly':    return addWeeks(startDate, period);
+      case 'Bi-Weekly': return addWeeks(startDate, period * 2);
+      case 'Quarterly': return this.addMonthsClamped(startDate, period * 3);
+      case 'Annually':  return addYears(startDate, period);
+      case 'Monthly':   return this.addMonthsClamped(startDate, period);
+    }
+  }
+
+  /**
+   * Adds months while keeping the original day-of-month wherever the target month is
+   * long enough - Jan 31 plus one month is Feb 28, but plus two is Mar 31.
+   */
+  private addMonthsClamped(startDate: Date, months: number): Date {
+    const shifted = addMonths(startDate, months);
+    const day = Math.min(startDate.getDate(), lastDayOfMonth(shifted).getDate());
+    return new Date(shifted.getFullYear(), shifted.getMonth(), day);
+  }
+
+  /**
    * Categories whose cost is being carried during the target month.
    *
    * Drives the dashboard chart and the expenses proportion bars, both of which show a
@@ -97,114 +165,98 @@ export class BudgetService {
       });
   }
 
+  /**
+   * What one category costs per month on average, normalising every frequency to a
+   * monthly figure. A One-Time charge has no ongoing cost and so contributes its full
+   * amount only to the month it falls in, which getRelevantCategoriesForMonth decides.
+   */
+  getMonthlyEquivalent(category: ExpenseCategory): number {
+      switch (category.frequency) {
+          case 'Monthly':   return category.budget;
+          case 'Weekly':    return category.budget * this.WEEKS_IN_MONTH;
+          case 'Bi-Weekly': return category.budget * this.BIWEEKS_IN_MONTH;
+          case 'Quarterly': return category.budget / 3;
+          case 'Annually':  return category.budget / 12;
+          case 'One-Time':  return category.budget;
+      }
+  }
+
+  /** What the budget costs per month on average. See getMonthlyEquivalent. */
   calculateTotalMonthlyEquivalentBudget(categories: ExpenseCategory[], targetDate: Date): number {
-      const relevantCategories = this.getRelevantCategoriesForMonth(categories, targetDate);
-      let totalMonthlyEquivalent = 0;
-      relevantCategories.forEach(cat => {
-          let monthlyEquivalent = 0;
-          switch (cat.frequency) {
-              case 'Monthly':   monthlyEquivalent = cat.budget; break;
-              case 'Weekly':    monthlyEquivalent = cat.budget * this.WEEKS_IN_MONTH; break;
-              case 'Bi-Weekly': monthlyEquivalent = cat.budget * this.BIWEEKS_IN_MONTH; break;
-              case 'Quarterly': monthlyEquivalent = cat.budget / 3; break;
-              case 'Annually':  monthlyEquivalent = cat.budget / 12; break;
-              case 'One-Time':  monthlyEquivalent = cat.budget; break;
-          } totalMonthlyEquivalent += monthlyEquivalent;
-      }); return totalMonthlyEquivalent;
+      return this.getRelevantCategoriesForMonth(categories, targetDate)
+          .reduce((total, cat) => total + this.getMonthlyEquivalent(cat), 0);
   }
 
+  /**
+   * What is actually charged during the target month.
+   *
+   * Distinct from calculateTotalMonthlyEquivalentBudget: a weekly $10 expense averages
+   * $43.33 a month but costs $50 in a month holding five occurrences.
+   */
   calculateTotalOccurrencesBudgetForMonth(categories: ExpenseCategory[], targetDate: Date): number {
-      const targetMonth = targetDate.getMonth(); const targetYear = targetDate.getFullYear();
-      let totalBudgetInMonth = 0;
-      categories.forEach(cat => {
-          if (!cat.dueDate) return;
-          try {
-              const startDate = parseISO(cat.dueDate); if (isNaN(startDate.getTime())) { throw new Error('Invalid start date'); }
-              let baseOccurrence = startDate; if (cat.frequency === 'Monthly' && cat.isDueEndOfMonth) { baseOccurrence = lastDayOfMonth(startDate); }
-              let iterations = 0; const maxIterations = 500; let nextOccurrence = baseOccurrence;
-              while (iterations < maxIterations) {
-                  iterations++; let occurrenceDate = nextOccurrence;
-                  if (cat.frequency === 'Monthly' && cat.isDueEndOfMonth) { occurrenceDate = lastDayOfMonth(nextOccurrence); }
-                  const occMonth = occurrenceDate.getMonth(); const occYear = occurrenceDate.getFullYear();
-                  if (occYear > targetYear || (occYear === targetYear && occMonth > targetMonth)) {
-                       if (cat.frequency !== 'Weekly' && cat.frequency !== 'Bi-Weekly') { break; }
-                       if (occYear > targetYear && (occMonth > 0 || targetMonth < 11)) break;
-                       if (occYear === targetYear && occMonth > targetMonth + 1 ) break;
-                  }
-                  if (occMonth === targetMonth && occYear === targetYear && occurrenceDate >= startDate) { totalBudgetInMonth += cat.budget; }
-                  switch (cat.frequency) {
-                      case 'One-Time': iterations = maxIterations; break;
-                      case 'Weekly': nextOccurrence = addWeeks(baseOccurrence, iterations); break;
-                      case 'Bi-Weekly': nextOccurrence = addWeeks(baseOccurrence, iterations * 2); break;
-                      case 'Monthly': const nextMonthDate = addMonths(startDate, iterations);
-                          if (cat.isDueEndOfMonth) { nextOccurrence = lastDayOfMonth(nextMonthDate); }
-                          else { const targetDay = startDate.getDate(); const daysInNextMonth = lastDayOfMonth(nextMonthDate).getDate(); nextOccurrence = new Date(nextMonthDate.getFullYear(), nextMonthDate.getMonth(), Math.min(targetDay, daysInNextMonth)); } break;
-                      case 'Quarterly': nextOccurrence = addMonths(startDate, iterations * 3); break;
-                      case 'Annually': nextOccurrence = addYears(startDate, iterations); break;
-                  } if(iterations === maxIterations) { console.warn("Max iterations reached calculating total for category", cat.name); }
-              }
-          } catch (e) { console.error(`Error calculating total for category "${cat.name}":`, e); }
-      }); return totalBudgetInMonth;
+      const month = { start: startOfMonth(targetDate), end: endOfMonth(targetDate) };
+
+      return categories.reduce((total, cat) => {
+          const occurrences = this.getOccurrences(
+            { frequency: cat.frequency, startDate: cat.dueDate, isDueEndOfMonth: cat.isDueEndOfMonth },
+            month
+          );
+          return total + occurrences.length * cat.budget;
+      }, 0);
   }
 
+  /** Expense and income occurrences in the period, as calendar events sorted by date. */
   getCalendarEventsForPeriod(categories: ExpenseCategory[], incomeSources: IncomeSource[], period: { start: Date, end: Date }): CalendarEvent<CalendarMetaData>[] {
-    const generatedEvents: CalendarEvent<CalendarMetaData>[] = [];
     const periodInterval = { start: startOfDay(period.start), end: endOfDay(period.end) };
-    categories.forEach((category, catIndex) => {
-        if (!category.dueDate) return;
-        try {
-            const startDate = parseISO(category.dueDate); if (isNaN(startDate.getTime())) { throw new Error(); }
-            const title = `${category.name}: -$${category.budget.toFixed(0)}`;
-            const color = category.color || this.expenseColorPalette[catIndex % this.expenseColorPalette.length];
-            const eventColor = { primary: color, secondary: this.adjustColorOpacity(color, 0.6) };
-            let baseOccurrence = startDate; if (category.frequency === 'Monthly' && category.isDueEndOfMonth) { baseOccurrence = lastDayOfMonth(startDate); }
-            let iterations = 0; const maxIterations = 1000; let nextOccurrence = baseOccurrence;
-            while (nextOccurrence <= periodInterval.end && iterations < maxIterations) {
-                iterations++; let occurrenceDate = nextOccurrence;
-                if (category.frequency === 'Monthly' && category.isDueEndOfMonth) { occurrenceDate = lastDayOfMonth(nextOccurrence); }
-                if (occurrenceDate >= periodInterval.start && occurrenceDate >= startDate && occurrenceDate <= periodInterval.end) {
-                      generatedEvents.push({ id: `exp_${category.id}_${format(occurrenceDate, 'yyyyMMdd')}`, start: occurrenceDate, title: title, color: eventColor, allDay: true, meta: { type: 'expense', data: category } });
-                } if (occurrenceDate > periodInterval.end && !(category.frequency === 'Monthly' && category.isDueEndOfMonth)) { break; }
-                switch (category.frequency) {
-                    case 'One-Time': iterations = maxIterations; break;
-                    case 'Weekly': nextOccurrence = addWeeks(baseOccurrence, iterations); break;
-                    case 'Bi-Weekly': nextOccurrence = addWeeks(baseOccurrence, iterations * 2); break;
-                    case 'Monthly': const nextMonthDate = addMonths(startDate, iterations);
-                        if (category.isDueEndOfMonth) { nextOccurrence = lastDayOfMonth(nextMonthDate); }
-                        else { const d = startDate.getDate(); const l = lastDayOfMonth(nextMonthDate).getDate(); nextOccurrence = new Date(nextMonthDate.getFullYear(), nextMonthDate.getMonth(), Math.min(d, l)); } break;
-                    case 'Quarterly': nextOccurrence = addMonths(startDate, iterations * 3); break;
-                    case 'Annually': nextOccurrence = addYears(startDate, iterations); break;
-                } if(iterations === maxIterations) { console.warn("Max iterations for category", category.name); }
-            }
-        } catch (e) { console.error(`Error processing category "${category.name}" date "${category.dueDate}":`, e); }
+
+    const expenseEvents = categories.flatMap((category, catIndex) => {
+        const occurrences = this.getOccurrences(
+          { frequency: category.frequency, startDate: category.dueDate, isDueEndOfMonth: category.isDueEndOfMonth },
+          periodInterval
+        );
+        const color = category.color || this.expenseColorPalette[catIndex % this.expenseColorPalette.length];
+
+        return occurrences.map(occurrence => this.toEvent({
+            idPrefix: 'exp',
+            id: category.id,
+            occurrence,
+            title: `${category.name}: -$${category.budget.toFixed(0)}`,
+            color,
+            meta: { type: 'expense', data: category },
+        }));
     });
 
-    incomeSources.forEach((income, incomeIndex) => {
-         if (!income.receiveDate) return;
-         try {
-            const startDate = parseISO(income.receiveDate); if (isNaN(startDate.getTime())) { throw new Error(); }
-            const title = `${income.name}: +$${income.amount.toFixed(0)}`;
-            const color = this.incomeColorPalette[incomeIndex % this.incomeColorPalette.length];
-            const eventColor = { primary: color, secondary: this.adjustColorOpacity(color, 0.6) };
-            const baseOccurrence = startDate; let iterations = 0; const maxIterations = 1000; let nextOccurrence = baseOccurrence;
-            while (nextOccurrence <= periodInterval.end && iterations < maxIterations) {
-                iterations++; const occurrenceDate = nextOccurrence;
-                if (occurrenceDate >= periodInterval.start && occurrenceDate >= startDate && occurrenceDate <= periodInterval.end) {
-                      generatedEvents.push({ id: `inc_${income.id}_${format(occurrenceDate, 'yyyyMMdd')}`, start: occurrenceDate, title: title, color: eventColor, allDay: true, meta: { type: 'income', data: income } });
-                } if (occurrenceDate > periodInterval.end) { break; }
-                switch (income.frequency) {
-                    case 'One-Time': iterations = maxIterations; break;
-                    case 'Weekly': nextOccurrence = addWeeks(baseOccurrence, iterations); break;
-                    case 'Bi-Weekly': nextOccurrence = addWeeks(baseOccurrence, iterations * 2); break;
-                    case 'Monthly': const nextMonthDate = addMonths(startDate, iterations); const targetDay = startDate.getDate(); const daysInNextMonth = lastDayOfMonth(nextMonthDate).getDate(); nextOccurrence = new Date(nextMonthDate.getFullYear(), nextMonthDate.getMonth(), Math.min(targetDay, daysInNextMonth)); break;
-                    case 'Quarterly': nextOccurrence = addMonths(startDate, iterations * 3); break;
-                    case 'Annually': nextOccurrence = addYears(startDate, iterations); break;
-                } if(iterations === maxIterations) { console.warn("Max iterations for income", income.name); }
-            }
-         } catch (e) { console.error(`Error processing income "${income.name}" date "${income.receiveDate}":`, e); }
+    const incomeEvents = incomeSources.flatMap((income, incomeIndex) => {
+        const occurrences = this.getOccurrences(
+          { frequency: income.frequency, startDate: income.receiveDate },
+          periodInterval
+        );
+        const color = this.incomeColorPalette[incomeIndex % this.incomeColorPalette.length];
+
+        return occurrences.map(occurrence => this.toEvent({
+            idPrefix: 'inc',
+            id: income.id,
+            occurrence,
+            title: `${income.name}: +$${income.amount.toFixed(0)}`,
+            color,
+            meta: { type: 'income', data: income },
+        }));
     });
 
-    generatedEvents.sort((a, b) => a.start.getTime() - b.start.getTime()); return generatedEvents;
+    return [...expenseEvents, ...incomeEvents].sort((a, b) => a.start.getTime() - b.start.getTime());
+  }
+
+  private toEvent(spec: {
+    idPrefix: string; id: string; occurrence: Date; title: string; color: string; meta: CalendarMetaData;
+  }): CalendarEvent<CalendarMetaData> {
+    return {
+      id: `${spec.idPrefix}_${spec.id}_${format(spec.occurrence, 'yyyyMMdd')}`,
+      start: spec.occurrence,
+      title: spec.title,
+      color: { primary: spec.color, secondary: this.adjustColorOpacity(spec.color, 0.6) },
+      allDay: true,
+      meta: spec.meta,
+    };
   }
 
   private adjustColorOpacity(color: string, opacity: number): string {

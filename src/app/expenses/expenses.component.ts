@@ -47,8 +47,6 @@ export class ExpensesComponent implements OnInit, OnDestroy {
   currentMonthName = '';
   currentMonthTotalEquivalentBudget = 0;
 
-  private readonly WEEKS_IN_MONTH = 52 / 12;
-  private readonly BIWEEKS_IN_MONTH = 26 / 12;
 
   constructor(private budgetService: BudgetService, private cdr: ChangeDetectorRef) { }
 
@@ -86,23 +84,14 @@ export class ExpensesComponent implements OnInit, OnDestroy {
       this.currentMonthTotalEquivalentBudget = this.budgetService.calculateTotalOccurrencesBudgetForMonth(allCurrentCategories, today);
       const relevantCategories = this.budgetService.getRelevantCategoriesForMonth(allCurrentCategories, today);
 
-      const categoriesForProportionBars = relevantCategories.map((cat, index) => {
-          let monthlyEquivalent = 0;
-           switch (cat.frequency) {
-               case 'Monthly':   monthlyEquivalent = cat.budget; break;
-               case 'Weekly':    monthlyEquivalent = cat.budget * this.WEEKS_IN_MONTH; break;
-               case 'Bi-Weekly': monthlyEquivalent = cat.budget * this.BIWEEKS_IN_MONTH; break;
-               case 'Quarterly': monthlyEquivalent = cat.budget / 3; break;
-               case 'Annually':  monthlyEquivalent = cat.budget / 12; break;
-               case 'One-Time':  monthlyEquivalent = 0; break;
-           }
-          return {
+      const categoriesForProportionBars = relevantCategories
+          .filter(cat => cat.frequency !== 'One-Time')
+          .map((cat, index) => ({
               ...cat,
-              monthlyEquivalent: monthlyEquivalent,
+              monthlyEquivalent: this.budgetService.getMonthlyEquivalent(cat),
               percentage: 0,
               color: cat.color || this.budgetService.getColorByIndex(index)
-          };
-      }).filter(cat => cat.frequency !== 'One-Time');
+          }));
 
       this.categoryProportions = categoriesForProportionBars.map(cat => ({
           ...cat,

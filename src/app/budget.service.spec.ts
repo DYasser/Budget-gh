@@ -209,6 +209,20 @@ describe('BudgetService', () => {
   // Monthly-equivalent averaging.
   // ---------------------------------------------------------------------------
 
+  describe('getMonthlyEquivalent', () => {
+    it('normalises each frequency to a monthly figure', () => {
+      const per = (frequency: ExpenseCategory['frequency'], budget: number) =>
+        service.getMonthlyEquivalent(expense({ frequency, dueDate: '2025-01-01', budget }));
+
+      expect(per('Monthly', 1500)).toBe(1500);
+      expect(per('Weekly', 10)).toBeCloseTo(43.33, 2);      // 52/12 weeks a month
+      expect(per('Bi-Weekly', 100)).toBeCloseTo(216.67, 2); // 26/12 periods a month
+      expect(per('Quarterly', 300)).toBe(100);
+      expect(per('Annually', 1200)).toBe(100);
+      expect(per('One-Time', 500)).toBe(500);
+    });
+  });
+
   describe('calculateTotalMonthlyEquivalentBudget', () => {
     it('averages a weekly expense over 52/12 weeks rather than counting occurrences', () => {
       const weekly = expense({ frequency: 'Weekly', dueDate: '2025-01-01', budget: 10 });
