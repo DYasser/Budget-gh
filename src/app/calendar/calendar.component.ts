@@ -5,15 +5,9 @@ import { CalendarModule, CalendarView, CalendarEvent, DateAdapter } from 'angula
 import { Subscription, combineLatest } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { trigger, state, style, transition, animate } from '@angular/animations'; // Import animation functions
-import {
-  addMonths, subMonths, lastDayOfMonth, parseISO, addWeeks, addYears, startOfMonth, endOfMonth,
-  startOfWeek, endOfWeek, isWithinInterval, addDays, getMonth, getYear, format, startOfDay, endOfDay,
-  add
-} from 'date-fns';
+import { addMonths, subMonths, parseISO, endOfMonth, startOfWeek, endOfWeek, startOfDay, endOfDay } from 'date-fns';
 import { getMonthView } from 'calendar-utils';
 import { BudgetService, ExpenseCategory, IncomeSource, CalendarMetaData } from '../budget.service';
-
-interface EventColor { primary: string; secondary: string; }
 
 @Component({
   selector: 'app-calendar',
@@ -46,14 +40,14 @@ export class CalendarComponent implements OnInit, OnDestroy {
   allIncomes: IncomeSource[] = [];
   private dataSubscription!: Subscription;
   private currencySubscription!: Subscription;
-  currencyCode: string = 'CAD';
-  receiptTotalAmount: number = 0;
+  currencyCode = 'CAD';
+  receiptTotalAmount = 0;
 
   currentSavings: number | null = null;
-  projectionTargetDate: string = '';
+  projectionTargetDate = '';
   projectedSavings: number | null = null;
-  isCalculatingProjection: boolean = false;
-  showProjectionCalculator: boolean = false; // Flag to control visibility
+  isCalculatingProjection = false;
+  showProjectionCalculator = false; // Flag to control visibility
 
   constructor(
     private budgetService: BudgetService,

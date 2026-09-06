@@ -19,7 +19,7 @@ import { FooterComponent } from './footer/footer.component';
 })
 export class AppComponent implements OnInit, OnDestroy {
   title = 'budget.io';
-  showBackButton: boolean = false;
+  showBackButton = false;
   private routerSubscription!: Subscription;
 
   constructor(

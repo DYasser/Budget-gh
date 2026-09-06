@@ -1,4 +1,4 @@
-import { Component, HostListener, ElementRef, HostBinding } from '@angular/core';
+import { Component, HostListener, ElementRef, HostBinding, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 
@@ -9,9 +9,9 @@ import { RouterLink } from '@angular/router';
   templateUrl: './footer.component.html',
   styleUrls: ['./footer.component.css']
 })
-export class FooterComponent {
+export class FooterComponent implements OnInit {
   currentYear: number = new Date().getFullYear();
-  appVersion: string = '1.0.0'; // Or your actual app version
+  appVersion = '1.0.0'; // Or your actual app version
 
   // HostBinding applies a class to the host element (<app-footer>)
   @HostBinding('class.is-near-bottom') isNearBottom = false;
@@ -19,8 +19,8 @@ export class FooterComponent {
   constructor(private el: ElementRef) {} // Inject ElementRef to reference the host element
 
   // Listen for scroll events on the window
-  @HostListener('window:scroll', ['$event'])
-  checkScroll(_event?: Event) {
+  @HostListener('window:scroll')
+  checkScroll() {
     const componentPosition = this.el.nativeElement.offsetTop;
     const scrollPosition = window.pageYOffset + window.innerHeight;
     // Threshold: How close to the footer appearing should trigger the effect?

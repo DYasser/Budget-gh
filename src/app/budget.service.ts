@@ -51,8 +51,6 @@ export class BudgetService {
   private readonly WEEKS_IN_MONTH = 52 / 12;
   private readonly BIWEEKS_IN_MONTH = 26 / 12;
 
-  constructor() {}
-
   private loadExpenses(): ExpenseCategory[] {
     try {
       const raw = localStorage.getItem(this.EXPENSES_KEY);
@@ -95,7 +93,7 @@ export class BudgetService {
               const hasStarted = (dueYear < targetYear) || (dueYear === targetYear && dueMonth <= targetMonth);
               if (cat.frequency === 'One-Time') { return dueYear === targetYear && dueMonth === targetMonth; }
               return hasStarted;
-          } catch (e) { return false; }
+          } catch { return false; }
       });
   }
 
@@ -121,7 +119,7 @@ export class BudgetService {
       categories.forEach(cat => {
           if (!cat.dueDate) return;
           try {
-              let startDate = parseISO(cat.dueDate); if (isNaN(startDate.getTime())) { throw new Error('Invalid start date'); }
+              const startDate = parseISO(cat.dueDate); if (isNaN(startDate.getTime())) { throw new Error('Invalid start date'); }
               let baseOccurrence = startDate; if (cat.frequency === 'Monthly' && cat.isDueEndOfMonth) { baseOccurrence = lastDayOfMonth(startDate); }
               let iterations = 0; const maxIterations = 500; let nextOccurrence = baseOccurrence;
               while (iterations < maxIterations) {
@@ -138,7 +136,7 @@ export class BudgetService {
                       case 'One-Time': iterations = maxIterations; break;
                       case 'Weekly': nextOccurrence = addWeeks(baseOccurrence, iterations); break;
                       case 'Bi-Weekly': nextOccurrence = addWeeks(baseOccurrence, iterations * 2); break;
-                      case 'Monthly': let nextMonthDate = addMonths(startDate, iterations);
+                      case 'Monthly': const nextMonthDate = addMonths(startDate, iterations);
                           if (cat.isDueEndOfMonth) { nextOccurrence = lastDayOfMonth(nextMonthDate); }
                           else { const targetDay = startDate.getDate(); const daysInNextMonth = lastDayOfMonth(nextMonthDate).getDate(); nextOccurrence = new Date(nextMonthDate.getFullYear(), nextMonthDate.getMonth(), Math.min(targetDay, daysInNextMonth)); } break;
                       case 'Quarterly': nextOccurrence = addMonths(startDate, iterations * 3); break;
@@ -155,7 +153,7 @@ export class BudgetService {
     categories.forEach((category, catIndex) => {
         if (!category.dueDate) return;
         try {
-            let startDate = parseISO(category.dueDate); if (isNaN(startDate.getTime())) { throw new Error(); }
+            const startDate = parseISO(category.dueDate); if (isNaN(startDate.getTime())) { throw new Error(); }
             const title = `${category.name}: -$${category.budget.toFixed(0)}`;
             const color = category.color || this.expenseColorPalette[catIndex % this.expenseColorPalette.length];
             const eventColor = { primary: color, secondary: this.adjustColorOpacity(color, 0.6) };
@@ -171,7 +169,7 @@ export class BudgetService {
                     case 'One-Time': iterations = maxIterations; break;
                     case 'Weekly': nextOccurrence = addWeeks(baseOccurrence, iterations); break;
                     case 'Bi-Weekly': nextOccurrence = addWeeks(baseOccurrence, iterations * 2); break;
-                    case 'Monthly': let nextMonthDate = addMonths(startDate, iterations);
+                    case 'Monthly': const nextMonthDate = addMonths(startDate, iterations);
                         if (category.isDueEndOfMonth) { nextOccurrence = lastDayOfMonth(nextMonthDate); }
                         else { const d = startDate.getDate(); const l = lastDayOfMonth(nextMonthDate).getDate(); nextOccurrence = new Date(nextMonthDate.getFullYear(), nextMonthDate.getMonth(), Math.min(d, l)); } break;
                     case 'Quarterly': nextOccurrence = addMonths(startDate, iterations * 3); break;
@@ -184,13 +182,13 @@ export class BudgetService {
     incomeSources.forEach((income, incomeIndex) => {
          if (!income.receiveDate) return;
          try {
-            let startDate = parseISO(income.receiveDate); if (isNaN(startDate.getTime())) { throw new Error(); }
+            const startDate = parseISO(income.receiveDate); if (isNaN(startDate.getTime())) { throw new Error(); }
             const title = `${income.name}: +$${income.amount.toFixed(0)}`;
             const color = this.incomeColorPalette[incomeIndex % this.incomeColorPalette.length];
             const eventColor = { primary: color, secondary: this.adjustColorOpacity(color, 0.6) };
-            let baseOccurrence = startDate; let iterations = 0; const maxIterations = 1000; let nextOccurrence = baseOccurrence;
+            const baseOccurrence = startDate; let iterations = 0; const maxIterations = 1000; let nextOccurrence = baseOccurrence;
             while (nextOccurrence <= periodInterval.end && iterations < maxIterations) {
-                iterations++; let occurrenceDate = nextOccurrence;
+                iterations++; const occurrenceDate = nextOccurrence;
                 if (occurrenceDate >= periodInterval.start && occurrenceDate >= startDate && occurrenceDate <= periodInterval.end) {
                       generatedEvents.push({ id: `inc_${income.id}_${format(occurrenceDate, 'yyyyMMdd')}`, start: occurrenceDate, title: title, color: eventColor, allDay: true, meta: { type: 'income', data: income } });
                 } if (occurrenceDate > periodInterval.end) { break; }
@@ -198,7 +196,7 @@ export class BudgetService {
                     case 'One-Time': iterations = maxIterations; break;
                     case 'Weekly': nextOccurrence = addWeeks(baseOccurrence, iterations); break;
                     case 'Bi-Weekly': nextOccurrence = addWeeks(baseOccurrence, iterations * 2); break;
-                    case 'Monthly': let nextMonthDate = addMonths(startDate, iterations); const targetDay = startDate.getDate(); const daysInNextMonth = lastDayOfMonth(nextMonthDate).getDate(); nextOccurrence = new Date(nextMonthDate.getFullYear(), nextMonthDate.getMonth(), Math.min(targetDay, daysInNextMonth)); break;
+                    case 'Monthly': const nextMonthDate = addMonths(startDate, iterations); const targetDay = startDate.getDate(); const daysInNextMonth = lastDayOfMonth(nextMonthDate).getDate(); nextOccurrence = new Date(nextMonthDate.getFullYear(), nextMonthDate.getMonth(), Math.min(targetDay, daysInNextMonth)); break;
                     case 'Quarterly': nextOccurrence = addMonths(startDate, iterations * 3); break;
                     case 'Annually': nextOccurrence = addYears(startDate, iterations); break;
                 } if(iterations === maxIterations) { console.warn("Max iterations for income", income.name); }

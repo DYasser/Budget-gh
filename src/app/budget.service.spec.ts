@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { BudgetService, ExpenseCategory, IncomeSource, BudgetFrequency } from './budget.service';
+import { BudgetService, ExpenseCategory, IncomeSource } from './budget.service';
 
 /**
  * Tests for the recurrence engine.

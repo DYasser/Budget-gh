@@ -1,15 +1,11 @@
-import { Component, OnInit, OnDestroy, ViewChild, HostListener, ChangeDetectorRef, NgZone } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, HostListener, ChangeDetectorRef } from '@angular/core';
 import { CommonModule, CurrencyPipe } from '@angular/common';
 import { BaseChartDirective } from 'ng2-charts';
-import { ChartConfiguration, ChartData, ChartType } from 'chart.js';
-import { trigger, state, style, transition, animate, AnimationEvent } from '@angular/animations';
+import { ChartConfiguration } from 'chart.js';
+import { trigger, style, transition, animate, AnimationEvent } from '@angular/animations';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { BudgetService, ExpenseCategory } from '../budget.service';
-import { addMonths, subMonths, lastDayOfMonth, parseISO } from 'date-fns';
-import { getMonthView } from 'calendar-utils';
-
-interface EventColor { primary: string; secondary: string; }
 
 @Component({
   selector: 'app-dashboard',
@@ -30,23 +26,23 @@ export class DashboardComponent implements OnInit, OnDestroy {
   showWelcome = true;
   showChart = false;
   viewDate: Date = new Date();
-  private timerHandle: any = null;
-  private resizeTimeout: any;
+  private timerHandle: ReturnType<typeof setTimeout> | null = null;
+  private resizeTimeout: ReturnType<typeof setTimeout> | undefined;
   private categoriesSubscription!: Subscription;
   private boundResizeHandler: any;
 
-  totalBudget: number = 0;
-  chartDateRangeTitle: string = '';
-  currencyCode: string = 'CAD';
-  mobileNavOpen: boolean = false;
-  mobileNavClosing: boolean = false;
+  totalBudget = 0;
+  chartDateRangeTitle = '';
+  currencyCode = 'CAD';
+  mobileNavOpen = false;
+  mobileNavClosing = false;
   private currencySubscription!: Subscription;
 
   public doughnutChartLabels: string[] = [];
   public doughnutChartDatasets: ChartConfiguration<'doughnut'>['data']['datasets'] = [
     { data: [], label: 'Budget Allocation', backgroundColor: [], hoverBackgroundColor: [], hoverBorderColor: '#fff', borderWidth: 1, hoverOffset: 4 }
   ];
-  public doughnutChartType: 'doughnut' = 'doughnut';
+  public doughnutChartType = 'doughnut' as const;
   public doughnutChartOptions: ChartConfiguration<'doughnut'>['options'] = {
     responsive: true,
     maintainAspectRatio: true,
@@ -159,7 +155,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
     }
   }
 
-  toggleMobileNav(): void { this.mobileNavOpen ? this.closeMobileNav() : (this.mobileNavOpen = true); }
+  toggleMobileNav(): void {
+    if (this.mobileNavOpen) { this.closeMobileNav(); } else { this.mobileNavOpen = true; }
+  }
 
   closeMobileNav(): void {
     if (!this.mobileNavOpen) { return; }

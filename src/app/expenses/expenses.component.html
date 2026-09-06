@@ -130,7 +130,7 @@
     confirmButtonText="Delete"
     cancelButtonText="Cancel"
     (confirm)="confirmDeletion()"
-    (cancel)="cancelDeletion()">
+    (cancelled)="cancelDeletion()">
   </app-confirmation-dialog>
 
   <div class="toast-container" *ngIf="toastMessage">

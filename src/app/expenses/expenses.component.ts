@@ -3,7 +3,6 @@ import { CommonModule, CurrencyPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { BudgetService, ExpenseCategory, BudgetFrequency } from '../budget.service';
-import { parseISO, lastDayOfMonth, addMonths, addWeeks, addYears } from 'date-fns';
 import { ConfirmationDialogComponent } from '../confirmation-dialog/confirmation-dialog.component'; // Import dialog
 
 interface CategoryPercentage extends ExpenseCategory { percentage: number; color: string; monthlyEquivalent: number; }
@@ -21,32 +20,32 @@ export class ExpensesComponent implements OnInit, OnDestroy {
   @ViewChild('categoryNameInput') categoryNameInputRef!: ElementRef<HTMLInputElement>;
 
   expenseCategories: ExpenseCategory[] = [];
-  currencyCode: string = 'CAD';
+  currencyCode = 'CAD';
   private categoriesSubscription!: Subscription;
   private currencySubscription!: Subscription;
 
-  isSaving: boolean = false; 
-  isDeleting: { [key: string]: boolean } = {};
+  isSaving = false; 
+  isDeleting: Record<string, boolean> = {};
 
-  showDeleteConfirm: boolean = false; // State for dialog visibility
+  showDeleteConfirm = false; // State for dialog visibility
   categoryToDelete: ExpenseCategory | null = null; // Store category to delete
 
   toastMessage: string | null = null;
   toastType: 'success' | 'error' | null = null;
   private toastTimeout: any = null;
 
-  newCategoryName: string = '';
+  newCategoryName = '';
   newCategoryBudget: number | null = null;
   newCategoryFrequency: BudgetFrequency = 'Monthly';
-  newCategoryDueDate: string = '';
-  newCategoryIsDueEndOfMonth: boolean = false;
+  newCategoryDueDate = '';
+  newCategoryIsDueEndOfMonth = false;
 
   editingCategory: ExpenseCategory | null = null;
 
   categoryProportions: CategoryPercentage[] = [];
   budgetFrequencies: BudgetFrequency[] = ['Monthly', 'Weekly', 'Bi-Weekly', 'Quarterly', 'Annually', 'One-Time'];
-  currentMonthName: string = '';
-  currentMonthTotalEquivalentBudget: number = 0;
+  currentMonthName = '';
+  currentMonthTotalEquivalentBudget = 0;
 
   private readonly WEEKS_IN_MONTH = 52 / 12;
   private readonly BIWEEKS_IN_MONTH = 26 / 12;
@@ -113,7 +112,7 @@ export class ExpensesComponent implements OnInit, OnDestroy {
       this.cdr.detectChanges();
   }
 
-  showToast(message: string, type: 'success' | 'error', duration: number = 3000): void {
+  showToast(message: string, type: 'success' | 'error', duration = 3000): void {
     clearTimeout(this.toastTimeout); // Clear any existing toast timeout
     this.toastMessage = message;
     this.toastType = type;
