@@ -6,7 +6,6 @@ import { BudgetService, ExpenseCategory, BudgetFrequency } from '../budget.servi
 import { parseISO, lastDayOfMonth, addMonths, addWeeks, addYears } from 'date-fns';
 import { ConfirmationDialogComponent } from '../confirmation-dialog/confirmation-dialog.component'; // Import dialog
 
-interface Transaction { id: number; date: string; categoryId: string; categoryName: string; amount: number; description: string; }
 interface CategoryPercentage extends ExpenseCategory { percentage: number; color: string; monthlyEquivalent: number; }
 
 @Component({
@@ -44,13 +43,6 @@ export class ExpensesComponent implements OnInit, OnDestroy {
 
   editingCategory: ExpenseCategory | null = null;
 
-  transactions: Transaction[] = [];
-  newTransactionAmount: number | null = null;
-  newTransactionDate: string = '';
-  newTransactionCategory: string | null = null;
-  newTransactionDescription: string = '';
-  private nextTransactionId = 1;
-
   categoryProportions: CategoryPercentage[] = [];
   budgetFrequencies: BudgetFrequency[] = ['Monthly', 'Weekly', 'Bi-Weekly', 'Quarterly', 'Annually', 'One-Time'];
   currentMonthName: string = '';
@@ -70,7 +62,6 @@ export class ExpensesComponent implements OnInit, OnDestroy {
       this.calculateCurrentMonthProportions();
     });
     this.currencySubscription = this.budgetService.currency$.subscribe(code => { this.currencyCode = code; this.cdr.detectChanges(); });
-    this.newTransactionDate = this.getTodayDateString();
     this.newCategoryDueDate = this.getTodayDateString();
     this.newCategoryIsDueEndOfMonth = false;
   }
@@ -220,14 +211,5 @@ export class ExpensesComponent implements OnInit, OnDestroy {
   cancelDeletion(): void {
     this.showDeleteConfirm = false;
     this.categoryToDelete = null;
-  }
-
-  addTransaction(): void {
-     if (this.newTransactionAmount === null || this.newTransactionAmount <= 0 || !this.newTransactionDate || this.newTransactionCategory === null) { alert('Please fill in Amount, Date, and Category for the transaction.'); return; }
-     const selectedCategory = this.expenseCategories.find(c => c.id === this.newTransactionCategory);
-     if (!selectedCategory) { alert('Selected category not found.'); return; }
-     const newTransaction: Transaction = { id: this.nextTransactionId++, amount: this.newTransactionAmount, date: this.newTransactionDate, categoryId: selectedCategory.id, categoryName: selectedCategory.name, description: this.newTransactionDescription.trim() };
-     this.transactions.push(newTransaction); console.log('Added Transaction (local):', newTransaction);
-     this.newTransactionAmount = null; this.newTransactionCategory = null; this.newTransactionDescription = ''; this.newTransactionDate = this.getTodayDateString();
   }
 }
