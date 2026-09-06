@@ -77,17 +77,25 @@ export class BudgetService {
     this._incomeSources$.next(data);
   }
 
+  /**
+   * Categories whose cost is being carried during the target month.
+   *
+   * Drives the dashboard chart and the expenses proportion bars, both of which show a
+   * monthly-equivalent view. A recurring category therefore counts from its start month
+   * onward - a quarterly bill still costs a share of every month between charges - while
+   * a One-Time charge belongs only to the month it falls in.
+   */
   getRelevantCategoriesForMonth(categories: ExpenseCategory[], targetDate: Date): ExpenseCategory[] {
       const targetMonth = targetDate.getMonth(); const targetYear = targetDate.getFullYear();
       return categories.filter(cat => {
-          let isRelevant = false; if (!cat.dueDate) return false;
+          if (!cat.dueDate) return false;
           try {
               const startDate = parseISO(cat.dueDate); if (isNaN(startDate.getTime())) throw new Error();
               const dueMonth = startDate.getMonth(); const dueYear = startDate.getFullYear();
-              if (cat.frequency === 'Weekly' || cat.frequency === 'Bi-Weekly') { isRelevant = true; }
-              else if (cat.frequency === 'Monthly') { if (cat.isDueEndOfMonth) { isRelevant = (dueYear < targetYear) || (dueYear === targetYear && dueMonth <= targetMonth); } else { isRelevant = true; } }
-              else { isRelevant = (dueMonth === targetMonth && dueYear === targetYear); }
-          } catch (e) { isRelevant = false; } return isRelevant;
+              const hasStarted = (dueYear < targetYear) || (dueYear === targetYear && dueMonth <= targetMonth);
+              if (cat.frequency === 'One-Time') { return dueYear === targetYear && dueMonth === targetMonth; }
+              return hasStarted;
+          } catch (e) { return false; }
       });
   }
 

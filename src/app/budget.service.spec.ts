@@ -248,9 +248,9 @@ describe('BudgetService', () => {
   // ---------------------------------------------------------------------------
   // Which categories count toward a given month.
   //
-  // NOTE: several assertions here pin down behaviour that is arguably wrong. They are
-  // marked KNOWN ISSUE and exist so a fix produces a visible, intentional diff rather
-  // than a silent change. See the notes on each.
+  // Both callers (the dashboard doughnut chart and the expenses proportion bars) use
+  // this list to show what a month costs on average, so a category is relevant when it
+  // has started by that month - and, for One-Time, when it actually falls in it.
   // ---------------------------------------------------------------------------
 
   describe('getRelevantCategoriesForMonth', () => {
@@ -285,40 +285,61 @@ describe('BudgetService', () => {
       expect(service.getRelevantCategoriesForMonth([bad], at(2025, 1, 15)).length).toBe(0);
     });
 
-    it('KNOWN ISSUE: drops a quarterly expense outside its exact start month', () => {
-      // A $300 quarterly bill costs $100/month year-round, but is treated as relevant
-      // only in the month it starts. It therefore vanishes from the dashboard chart and
-      // the monthly-equivalent total for the other 11 months.
+    it('keeps a quarterly expense relevant in every month after it starts', () => {
+      // A $300 quarterly bill costs $100/month year-round, not only in the month it is
+      // charged, so it must stay on the chart between charges.
       const quarterly = expense({ frequency: 'Quarterly', dueDate: '2025-01-15', budget: 300 });
 
       expect(service.getRelevantCategoriesForMonth([quarterly], at(2025, 1, 15)).length).toBe(1);
-      expect(service.getRelevantCategoriesForMonth([quarterly], at(2025, 4, 15)).length).toBe(0);
-      expect(service.calculateTotalMonthlyEquivalentBudget([quarterly], at(2025, 4, 15))).toBe(0);
+      expect(service.getRelevantCategoriesForMonth([quarterly], at(2025, 2, 15)).length).toBe(1);
+      expect(service.calculateTotalMonthlyEquivalentBudget([quarterly], at(2025, 2, 15))).toBe(100);
     });
 
-    it('KNOWN ISSUE: drops an annual expense outside its exact start month and year', () => {
-      // Same defect, and worse: the year must match too, so a 2023 annual premium
-      // contributes nothing to any 2025 month.
+    it('keeps an annual expense relevant in later years', () => {
       const annual = expense({ frequency: 'Annually', dueDate: '2023-06-01', budget: 1200 });
 
-      expect(service.getRelevantCategoriesForMonth([annual], at(2025, 6, 15)).length).toBe(0);
-      expect(service.calculateTotalMonthlyEquivalentBudget([annual], at(2025, 6, 15))).toBe(0);
+      expect(service.getRelevantCategoriesForMonth([annual], at(2025, 6, 15)).length).toBe(1);
+      expect(service.getRelevantCategoriesForMonth([annual], at(2025, 11, 15)).length).toBe(1);
+      expect(service.calculateTotalMonthlyEquivalentBudget([annual], at(2025, 11, 15))).toBe(100);
     });
 
-    it('KNOWN ISSUE: counts a future-dated monthly expense against the current month', () => {
-      // Rent that starts in June 2025 is already included in January 2025's total.
+    it('excludes a future-dated monthly expense from the current month', () => {
       const future = expense({ frequency: 'Monthly', dueDate: '2025-06-01', budget: 100 });
 
-      expect(service.getRelevantCategoriesForMonth([future], at(2025, 1, 15)).length).toBe(1);
-      expect(service.calculateTotalMonthlyEquivalentBudget([future], at(2025, 1, 15))).toBe(100);
-      // ...while the occurrence total correctly reports nothing due.
+      expect(service.getRelevantCategoriesForMonth([future], at(2025, 1, 15)).length).toBe(0);
+      expect(service.calculateTotalMonthlyEquivalentBudget([future], at(2025, 1, 15))).toBe(0);
+      // ...and agrees with the occurrence total, which already reported nothing due.
       expect(service.calculateTotalOccurrencesBudgetForMonth([future], at(2025, 1, 15))).toBe(0);
     });
 
-    it('KNOWN ISSUE: counts a future-dated weekly expense against the current month', () => {
+    it('includes a monthly expense from its own start month onward', () => {
+      const rent = expense({ frequency: 'Monthly', dueDate: '2025-06-15', budget: 100 });
+
+      expect(service.getRelevantCategoriesForMonth([rent], at(2025, 6, 1)).length).toBe(1);
+      expect(service.getRelevantCategoriesForMonth([rent], at(2025, 7, 1)).length).toBe(1);
+    });
+
+    it('excludes a future-dated weekly expense from the current month', () => {
       const future = expense({ frequency: 'Weekly', dueDate: '2026-01-01', budget: 10 });
 
-      expect(service.getRelevantCategoriesForMonth([future], at(2025, 1, 15)).length).toBe(1);
+      expect(service.getRelevantCategoriesForMonth([future], at(2025, 1, 15)).length).toBe(0);
+    });
+
+    it('includes a weekly expense once it has started', () => {
+      const weekly = expense({ frequency: 'Weekly', dueDate: '2025-01-08', budget: 10 });
+
+      expect(service.getRelevantCategoriesForMonth([weekly], at(2025, 1, 15)).length).toBe(1);
+      expect(service.getRelevantCategoriesForMonth([weekly], at(2026, 5, 15)).length).toBe(1);
+    });
+
+    it('counts a one-time expense only in the month it falls', () => {
+      // Unlike the recurring frequencies, a One-Time charge is not an ongoing cost:
+      // it belongs to its own month and no other.
+      const oneTime = expense({ frequency: 'One-Time', dueDate: '2025-03-10', budget: 500 });
+
+      expect(service.getRelevantCategoriesForMonth([oneTime], at(2025, 3, 15)).length).toBe(1);
+      expect(service.getRelevantCategoriesForMonth([oneTime], at(2025, 4, 15)).length).toBe(0);
+      expect(service.getRelevantCategoriesForMonth([oneTime], at(2025, 2, 15)).length).toBe(0);
     });
   });
 
