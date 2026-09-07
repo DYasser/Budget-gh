@@ -1,0 +1,88 @@
+<div class="privacy-container">
+  <h1>Privacy</h1>
+
+  <p class="lede">
+    budget.io has no server, no account and no analytics. Everything you enter stays in
+    your own browser, on the device you entered it on.
+  </p>
+
+  <section class="privacy-section">
+    <h2 class="section-header"><span class="material-symbols-outlined">cloud_off</span> What we collect</h2>
+    <p class="statement">Nothing.</p>
+    <p>
+      There is no backend to send data to. No account to create, no sign-in, no email
+      address. Your budget is never transmitted anywhere, which also means nobody
+      &mdash; including whoever built this &mdash; can read it.
+    </p>
+  </section>
+
+  <section class="privacy-section">
+    <h2 class="section-header"><span class="material-symbols-outlined">database</span> What your browser stores</h2>
+    <p>
+      The app keeps your data in your browser's own storage. That is the complete list:
+    </p>
+    <ul class="storage-list">
+      <li *ngFor="let item of storedItems">
+        <code>{{ item.key }}</code>
+        <span class="store-badge">{{ item.store }}</span>
+        <span class="holds">{{ item.holds }}</span>
+      </li>
+    </ul>
+    <p class="note">
+      Because this lives in your browser rather than on a server, two things follow.
+      Clearing your site data deletes your budget permanently, and your budget does not
+      follow you to another browser or device. Use
+      <a routerLink="/settings">Settings &rarr; Export</a> to keep a copy as a JSON file.
+    </p>
+  </section>
+
+  <section class="privacy-section">
+    <h2 class="section-header"><span class="material-symbols-outlined">public</span> Requests that leave your device</h2>
+    <p>
+      One, and it carries none of your data: the app loads the
+      <strong>Material Symbols</strong> icon font from Google Fonts
+      (<code>fonts.googleapis.com</code> and <code>fonts.gstatic.com</code>). Like any
+      request for a font, that tells Google your IP address and browser &mdash; not
+      anything about your budget.
+    </p>
+    <p class="note">
+      After your first visit the font is cached by the app's service worker, so it loads
+      from your device on later visits. The site itself is served as static files from
+      GitHub Pages, whose own logging is described in
+      <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener">GitHub's privacy statement</a>.
+    </p>
+  </section>
+
+  <section class="privacy-section">
+    <h2 class="section-header"><span class="material-symbols-outlined">block</span> What the app does not do</h2>
+    <ul class="plain-list">
+      <li>No analytics, telemetry or crash reporting</li>
+      <li>No advertising or tracking pixels</li>
+      <li>No cookies</li>
+      <li>No third-party scripts beyond the icon font above</li>
+      <li>No connection to any bank or financial institution</li>
+    </ul>
+  </section>
+
+  <section class="privacy-section">
+    <h2 class="section-header"><span class="material-symbols-outlined">delete</span> Deleting your data</h2>
+    <p>
+      Delete individual categories from the Expenses and Incomes pages, or clear
+      everything at once through your browser's &ldquo;clear site data&rdquo; setting for
+      this site. There is nothing held elsewhere that needs a request to erase.
+    </p>
+  </section>
+
+  <section class="privacy-section">
+    <h2 class="section-header"><span class="material-symbols-outlined">code</span> Verifying this</h2>
+    <p>
+      Every claim here is checkable: the app is open source, so you can read the code
+      that stores your data and confirm there is nowhere for it to be sent.
+    </p>
+    <a class="source-link" href="https://github.com/DYasser/Budget-gh" target="_blank" rel="noopener">
+      <span class="material-symbols-outlined">open_in_new</span> View the source on GitHub
+    </a>
+  </section>
+
+  <p class="updated">Last updated September 2026.</p>
+</div>

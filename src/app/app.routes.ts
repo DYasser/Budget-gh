@@ -5,6 +5,7 @@ import { ExpensesComponent } from './expenses/expenses.component';
 import { CalendarComponent } from './calendar/calendar.component';
 import { SettingsComponent } from './settings/settings.component';
 import { IncomesComponent } from './incomes/incomes.component';
+import { PrivacyComponent } from './privacy/privacy.component';
 
 export const routes: Routes = [
   {
@@ -36,10 +37,11 @@ export const routes: Routes = [
     component: IncomesComponent, 
     title: 'Incomes - budget.io' 
   },
-  // { path: 'privacy', component: PrivacyPolicyComponent },
-  // { path: 'terms', component: TermsComponent },
-  // { path: 'contact', component: ContactComponent },
-
-  // Optional: Wildcard route for 404 pages
-  // { path: '**', component: PageNotFoundComponent }
+  {
+    path: 'privacy',
+    component: PrivacyComponent,
+    title: 'Privacy - budget.io'
+  },
+  // Unknown paths fall back to the dashboard rather than a blank screen.
+  { path: '**', redirectTo: 'dashboard' }
 ];
