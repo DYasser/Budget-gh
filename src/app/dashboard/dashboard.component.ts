@@ -10,6 +10,15 @@ import { BudgetService, ExpenseCategory, IncomeSource, MonthTotal } from '../bud
 /** The three rings the dashboard can show. */
 export type DashboardView = 'balance' | 'income' | 'expenses';
 
+/** One slice of the ring, and its legend row. */
+interface Segment {
+  label: string;
+  amount: number;
+  color: string;
+  /** Set on the grouped slice, so the legend can name what it folded in. */
+  groupedNames?: string[];
+}
+
 @Component({
   selector: 'app-dashboard',
   standalone: true,
@@ -54,12 +63,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private incomeTotals: MonthTotal[] = [];
 
   /** Legend rows for the ring currently shown. */
-  legendRows: { label: string; color: string; amount: number }[] = [];
+  legendRows: Segment[] = [];
 
-  private readonly INCOME_COLOR = '#4BC0C0';
-  private readonly EXPENSE_COLOR = '#FF6384';
-  private readonly INCOME_PALETTE = ['#4BC0C0', '#36A2EB', '#7CFFC4', '#9966FF', '#BDB2FF'];
-  private readonly EXPENSE_PALETTE = ['#FF6384', '#FF9F40', '#FFCD56', '#C9CBCF', '#FF7C7C'];
+  // Balance is a two-slice ring, so it needs a fixed pair rather than the
+  // categorical palette: what the month consumes, and what survives it.
+  private readonly SPENT_COLOR = '#e34948';
+  private readonly REMAINING_COLOR = '#1baf7a';
 
   public doughnutChartLabels: string[] = [];
   public doughnutChartDatasets: ChartConfiguration<'doughnut'>['data']['datasets'] = [
@@ -190,12 +199,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private renderActiveView(): void {
     const segments = this.activeView === 'balance'
       ? this.buildBalanceSegments()
-      : (this.activeView === 'income' ? this.incomeTotals : this.expenseTotals)
-          .map((entry, index) => ({
-            label: entry.name,
-            amount: entry.total,
-            color: entry.color || this.paletteColor(this.activeView, index),
-          }));
+      : this.buildBreakdownSegments(this.activeView === 'income' ? this.incomeTotals : this.expenseTotals);
 
     this.doughnutChartLabels = segments.map(seg => seg.label);
     const dataset = this.doughnutChartDatasets[0];
@@ -216,15 +220,49 @@ export class DashboardComponent implements OnInit, OnDestroy {
    * and what survives them. Overspending has no remainder to show, so the ring becomes
    * a single spent slice and the centre figure carries the shortfall.
    */
-  private buildBalanceSegments(): { label: string; amount: number; color: string }[] {
-    const spent = { label: 'Spent', amount: this.totalBudget, color: this.EXPENSE_COLOR };
+  private buildBalanceSegments(): Segment[] {
+    const spent = { label: 'Spent', amount: this.totalBudget, color: this.SPENT_COLOR };
     if (this.remaining <= 0) { return [spent]; }
-    return [spent, { label: 'Remaining', amount: this.remaining, color: this.INCOME_COLOR }];
+    return [spent, { label: 'Remaining', amount: this.remaining, color: this.REMAINING_COLOR }];
   }
 
-  private paletteColor(view: DashboardView, index: number): string {
-    const palette = view === 'income' ? this.INCOME_PALETTE : this.EXPENSE_PALETTE;
-    return palette[index % palette.length];
+  /**
+   * One slice per entry while there are distinct hues to give out, then a single
+   * grouped slice for the rest.
+   *
+   * A twelve-category month drawn on a seven-hue palette would repeat colours, and
+   * twelve slices are unreadable anyway: the smallest here are worth a rounding
+   * error next to rent. Entries arrive largest-first, so the ones that lose their
+   * own hue are always the least significant.
+   */
+  private buildBreakdownSegments(entries: MonthTotal[]): Segment[] {
+    const limit = this.budgetService.MAX_DISTINCT_SERIES;
+    if (entries.length <= limit) {
+      return entries.map((entry, index) => ({
+        label: entry.name,
+        amount: entry.total,
+        color: entry.color || this.budgetService.getColorByIndex(index),
+      }));
+    }
+
+    // Keep one slot free for the grouped remainder so it is never a repeated hue.
+    const named = entries.slice(0, limit - 1);
+    const grouped = entries.slice(limit - 1);
+    const groupedTotal = grouped.reduce((total, entry) => total + entry.total, 0);
+
+    return [
+      ...named.map((entry, index) => ({
+        label: entry.name,
+        amount: entry.total,
+        color: entry.color || this.budgetService.getColorByIndex(index),
+      })),
+      {
+        label: `Other (${grouped.length})`,
+        amount: groupedTotal,
+        color: this.budgetService.OTHER_COLOR,
+        groupedNames: grouped.map(entry => entry.name),
+      },
+    ];
   }
 
   handleViewportResize(): void {

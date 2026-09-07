@@ -50,12 +50,30 @@ export class BudgetService {
   incomeSources$: Observable<IncomeSource[]> = this._incomeSources$.asObservable();
   currency$: Observable<string> = this._currency$.asObservable();
 
-  private readonly colorPalette: string[] = [
-    '#36A2EB', '#FF6384', '#FFCE56', '#4BC0C0', '#9966FF',
-    '#FF9F40', '#C9CBCF', '#7CFFC4', '#FF7C7C', '#BDB2FF'
+  /**
+   * Categorical palette, assigned in fixed order and never cycled.
+   *
+   * Seven hues validated as a set for colour-vision deficiency and for
+   * normal-vision separation between neighbouring segments; the previous five-hue
+   * palette repeated itself from the sixth category onward, so a twelve-category
+   * month drew Rent and Gas in the same pink. Anything past the seventh entry is
+   * grouped under a neutral grey rather than given a made-up eighth hue.
+   */
+  private readonly categoricalPalette: readonly string[] = [
+    '#2a78d6', // blue
+    '#eb6834', // orange
+    '#1baf7a', // aqua
+    '#eda100', // yellow
+    '#e87ba4', // magenta
+    '#008300', // green
+    '#4a3aa7', // violet
   ];
-  private readonly expenseColorPalette: string[] = [ '#FF6384', '#FF9F40', '#FFCD56', '#C9CBCF', '#FF7C7C' ];
-  private readonly incomeColorPalette: string[] = [ '#36A2EB', '#4BC0C0', '#7CFFC4', '#9966FF', '#BDB2FF' ];
+
+  /** Used for the grouped remainder and for anything without a slot of its own. */
+  readonly OTHER_COLOR = '#8b8b86';
+
+  /** How many entries get their own hue before the rest are grouped. */
+  readonly MAX_DISTINCT_SERIES = this.categoricalPalette.length;
   private readonly WEEKS_IN_MONTH = 52 / 12;
   private readonly BIWEEKS_IN_MONTH = 26 / 12;
   /** Safety valve on rule expansion: ~19 years of weekly occurrences. */
@@ -272,7 +290,7 @@ export class BudgetService {
           { frequency: category.frequency, startDate: category.dueDate, isDueEndOfMonth: category.isDueEndOfMonth },
           periodInterval
         );
-        const color = category.color || this.expenseColorPalette[catIndex % this.expenseColorPalette.length];
+        const color = category.color || this.getColorByIndex(catIndex);
 
         return occurrences.map(occurrence => this.toEvent({
             idPrefix: 'exp',
@@ -289,7 +307,7 @@ export class BudgetService {
           { frequency: income.frequency, startDate: income.receiveDate },
           periodInterval
         );
-        const color = this.incomeColorPalette[incomeIndex % this.incomeColorPalette.length];
+        const color = this.getColorByIndex(incomeIndex);
 
         return occurrences.map(occurrence => this.toEvent({
             idPrefix: 'inc',
@@ -366,8 +384,12 @@ export class BudgetService {
     this.saveIncomes(current.filter(i => i.id !== id));
   }
 
+  /**
+   * The hue for the nth entry. Past the palette's length this returns the neutral
+   * grey rather than wrapping around to a colour already in use.
+   */
   public getColorByIndex(index: number): string {
-      return this.colorPalette[index % this.colorPalette.length];
+      return this.categoricalPalette[index] ?? this.OTHER_COLOR;
   }
 
   getCategoriesSnapshot(): ExpenseCategory[] {

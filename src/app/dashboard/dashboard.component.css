@@ -360,6 +360,15 @@ canvas {
   background: #e8e8e8;
 }
 
+/* The grouped remainder hints that it can be inspected. */
+.custom-legend-dashboard .legend-item.grouped {
+  cursor: help;
+}
+
+.custom-legend-dashboard .legend-item.grouped .legend-label {
+  border-bottom: 1px dotted #bbb;
+}
+
 .legend-amount {
   margin-left: 0.5rem;
   font-weight: 600;
