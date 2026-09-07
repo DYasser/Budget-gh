@@ -33,8 +33,16 @@ jobs:
       - name: Build
         run: npx ng build --configuration production --base-href /Budget-io/
 
+      # GitHub Pages serves index.html for unknown paths only via 404.html, which is
+      # how client-side routes survive a hard refresh.
       - name: Copy index.html to 404.html
         run: cp dist/budget-io/browser/index.html dist/budget-io/browser/404.html
+
+      # publish_dir replaces the target repository's contents wholesale, so the
+      # artifact repo's README has to be generated into the bundle rather than
+      # committed there by hand.
+      - name: Add deployment README
+        run: cp deploy/README.deploy.md dist/budget-io/browser/README.md
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
