@@ -592,7 +592,7 @@ describe('BudgetService', () => {
       expect(service.getColorByIndex(99)).toBe(service.OTHER_COLOR);
     });
 
-    it('gives calendar events colours from the same palette', () => {
+    it('gives calendar expenses colours from the palette in order', () => {
       const first = expense({ id: 'a', frequency: 'Monthly', dueDate: '2025-01-05' });
       const second = expense({ id: 'b', frequency: 'Monthly', dueDate: '2025-01-06' });
 
@@ -603,6 +603,46 @@ describe('BudgetService', () => {
 
       expect(events[0].color?.primary).toBe(service.getColorByIndex(0));
       expect(events[1].color?.primary).toBe(service.getColorByIndex(1));
+    });
+
+    it('does not paint the first income the same colour as the first expense', () => {
+      // In the month grid the dot is the only cue - the +/- is in the receipt list -
+      // so a paycheck and a bill sharing a hue makes them indistinguishable.
+      const rent = expense({ id: 'rent', frequency: 'Monthly', dueDate: '2025-01-05' });
+      const salary = income({ id: 'salary', frequency: 'Monthly', receiveDate: '2025-01-06' });
+
+      const events = service.getCalendarEventsForPeriod([rent], [salary], {
+        start: at(2025, 1, 1),
+        end: at(2025, 1, 31),
+      });
+
+      const colors = events.map(e => e.color?.primary);
+      expect(new Set(colors).size).toBe(2);
+    });
+
+    it('marks calendar events with their direction, independent of colour', () => {
+      const rent = expense({ id: 'rent', frequency: 'Monthly', dueDate: '2025-01-05' });
+      const salary = income({ id: 'salary', frequency: 'Monthly', receiveDate: '2025-01-06' });
+
+      const events = service.getCalendarEventsForPeriod([rent], [salary], {
+        start: at(2025, 1, 1),
+        end: at(2025, 1, 31),
+      });
+
+      expect(events.find(e => e.meta?.type === 'expense')?.cssClass).toBe('cal-expense');
+      expect(events.find(e => e.meta?.type === 'income')?.cssClass).toBe('cal-income');
+    });
+
+    it('keeps the balance colours out of the categorical palette', () => {
+      // Otherwise switching Balance -> Expenses turns "money you keep" into
+      // "your nth-largest expense" in the same green.
+      const categorical = Array.from(
+        { length: service.MAX_DISTINCT_SERIES },
+        (_, i) => service.getColorByIndex(i),
+      );
+
+      expect(categorical).not.toContain(service.REMAINING_COLOR);
+      expect(categorical).not.toContain(service.SPENT_COLOR);
     });
   });
 

@@ -65,10 +65,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
   /** Legend rows for the ring currently shown. */
   legendRows: Segment[] = [];
 
-  // Balance is a two-slice ring, so it needs a fixed pair rather than the
-  // categorical palette: what the month consumes, and what survives it.
-  private readonly SPENT_COLOR = '#e34948';
-  private readonly REMAINING_COLOR = '#1baf7a';
+  // Balance is a two-slice ring: what the month consumes, and what survives it.
+  // Both come from the service so they cannot drift from the categorical palette.
+  private get SPENT_COLOR(): string { return this.budgetService.SPENT_COLOR; }
+  private get REMAINING_COLOR(): string { return this.budgetService.REMAINING_COLOR; }
 
   public doughnutChartLabels: string[] = [];
   public doughnutChartDatasets: ChartConfiguration<'doughnut'>['data']['datasets'] = [
