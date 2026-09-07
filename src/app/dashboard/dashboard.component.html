@@ -94,7 +94,9 @@
 
   <div class="custom-legend-dashboard" *ngIf="legendRows.length > 0 && activeView !== 'balance'">
     <ul class="legend-list">
-      <li *ngFor="let row of legendRows" class="legend-item">
+      <li *ngFor="let row of legendRows" class="legend-item"
+          [class.grouped]="row.groupedNames"
+          [attr.title]="row.groupedNames ? row.groupedNames.join(', ') : null">
         <span class="legend-color-box" [style.backgroundColor]="row.color"></span>
         <span class="legend-label">{{ row.label }}</span>
         <span class="legend-amount">{{ row.amount | currency:currencyCode:'symbol':'1.0-0' }}</span>
