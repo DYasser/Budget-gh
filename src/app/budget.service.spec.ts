@@ -575,6 +575,37 @@ describe('BudgetService', () => {
   // Persistence and CRUD.
   // ---------------------------------------------------------------------------
 
+  describe('getColorByIndex', () => {
+    it('gives each of the first seven entries a distinct colour', () => {
+      const colors = Array.from({ length: service.MAX_DISTINCT_SERIES }, (_, i) => service.getColorByIndex(i));
+
+      expect(new Set(colors).size).toBe(service.MAX_DISTINCT_SERIES);
+    });
+
+    it('never wraps back onto a colour already in use', () => {
+      // The old palette repeated from the sixth category on, so a twelve-category
+      // month drew two segments in the same pink.
+      const named = Array.from({ length: service.MAX_DISTINCT_SERIES }, (_, i) => service.getColorByIndex(i));
+
+      expect(named).not.toContain(service.OTHER_COLOR);
+      expect(service.getColorByIndex(service.MAX_DISTINCT_SERIES)).toBe(service.OTHER_COLOR);
+      expect(service.getColorByIndex(99)).toBe(service.OTHER_COLOR);
+    });
+
+    it('gives calendar events colours from the same palette', () => {
+      const first = expense({ id: 'a', frequency: 'Monthly', dueDate: '2025-01-05' });
+      const second = expense({ id: 'b', frequency: 'Monthly', dueDate: '2025-01-06' });
+
+      const events = service.getCalendarEventsForPeriod([first, second], [], {
+        start: at(2025, 1, 1),
+        end: at(2025, 1, 31),
+      });
+
+      expect(events[0].color?.primary).toBe(service.getColorByIndex(0));
+      expect(events[1].color?.primary).toBe(service.getColorByIndex(1));
+    });
+  });
+
   describe('expense persistence', () => {
     it('adds a category and pushes it to subscribers', async () => {
       const emitted: ExpenseCategory[][] = [];
