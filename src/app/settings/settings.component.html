@@ -36,6 +36,19 @@
     </div>
   </section>
 
+  <!-- Section 3: Where the data lives -->
+  <section class="settings-section">
+    <h2 class="section-header"><span class="material-symbols-outlined">shield</span> Your Data</h2>
+    <p class="import-note">
+      Everything you enter stays in this browser. There is no account and no server, so
+      exporting is the only way to move your budget to another device &mdash; or to keep
+      a backup before clearing your browser data.
+    </p>
+    <a routerLink="/privacy" class="settings-btn export-btn">
+      <span class="material-symbols-outlined">lock</span> How your data is handled
+    </a>
+  </section>
+
   <app-confirmation-dialog
     [isVisible]="showImportConfirm"
     [message]="importConfirmMessage"

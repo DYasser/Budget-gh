@@ -3,12 +3,13 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { BudgetService, ExpenseCategory, IncomeSource } from '../budget.service';
+import { RouterLink } from '@angular/router';
 import { ConfirmationDialogComponent } from '../confirmation-dialog/confirmation-dialog.component';
 
 @Component({
   selector: 'app-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule, ConfirmationDialogComponent],
+  imports: [CommonModule, FormsModule, RouterLink, ConfirmationDialogComponent],
   templateUrl: './settings.component.html',
   styleUrl: './settings.component.css'
 })

@@ -1,0 +1,234 @@
+/* Mirrors the Settings page layout so the two read as the same app. */
+:host {
+    display: block;
+    box-sizing: border-box;
+    padding-top: 70px;
+    padding-left: 70px;
+    padding-right: 2rem;
+    padding-bottom: 2rem;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    min-height: 100%;
+}
+
+.privacy-container {
+    max-width: 700px;
+    margin: 0 auto;
+}
+
+.privacy-container h1 {
+    font-weight: 300;
+    font-size: 1.8rem;
+    color: #333;
+    margin-top: 0;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #eee;
+}
+
+.lede {
+    font-size: 1.05rem;
+    line-height: 1.6;
+    color: #555;
+    margin-top: 0;
+    margin-bottom: 1.75rem;
+}
+
+.privacy-section {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.06);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #888;
+    margin-top: 0;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.6rem;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.section-header .material-symbols-outlined {
+    font-size: 18px;
+    color: #aaa;
+}
+
+.privacy-section p {
+    font-size: 0.95rem;
+    line-height: 1.65;
+    color: #444;
+    margin: 0 0 0.9rem;
+}
+
+.privacy-section p:last-child {
+    margin-bottom: 0;
+}
+
+/* The headline answer to "what do you collect". */
+.statement {
+    font-size: 1.5rem !important;
+    font-weight: 300;
+    color: #2e7d32 !important;
+    margin-bottom: 0.75rem !important;
+}
+
+.note {
+    font-size: 0.875rem !important;
+    color: #666 !important;
+    background: #fafafa;
+    border-left: 3px solid #e8e8e8;
+    padding: 0.75rem 0.9rem;
+    border-radius: 0 5px 5px 0;
+}
+
+.privacy-section a {
+    color: var(--app-accent-color, #007bff);
+    text-decoration: none;
+    border-bottom: 1px solid rgba(0, 123, 255, 0.25);
+    transition: border-color 0.2s ease;
+}
+
+.privacy-section a:hover {
+    border-bottom-color: var(--app-accent-color, #007bff);
+}
+
+/* Exact list of what the browser holds. */
+.storage-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 1rem;
+}
+
+.storage-list li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.8rem 0;
+    border-bottom: 1px solid #f2f2f2;
+}
+
+.storage-list li:last-child {
+    border-bottom: none;
+}
+
+.storage-list code {
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 0.82rem;
+    background: #f5f5f5;
+    color: #c0392b;
+    padding: 0.2rem 0.45rem;
+    border-radius: 4px;
+}
+
+.store-badge {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #777;
+    background: #f0f0f0;
+    padding: 0.2rem 0.5rem;
+    border-radius: 10px;
+    white-space: nowrap;
+}
+
+.holds {
+    flex: 1 1 100%;
+    font-size: 0.875rem;
+    line-height: 1.55;
+    color: #555;
+}
+
+.plain-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.plain-list li {
+    position: relative;
+    padding-left: 1.6rem;
+    margin-bottom: 0.6rem;
+    font-size: 0.95rem;
+    line-height: 1.55;
+    color: #444;
+}
+
+.plain-list li:last-child {
+    margin-bottom: 0;
+}
+
+.plain-list li::before {
+    content: '\2014'; /* em dash */
+    position: absolute;
+    left: 0.35rem;
+    color: #bbb;
+}
+
+.source-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.7rem 1.2rem;
+    min-height: 44px;
+    box-sizing: border-box;
+    border: 1px solid #dcdcdc !important;
+    border-radius: 5px;
+    background: #fdfdfd;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #444 !important;
+    text-decoration: none;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.source-link:hover {
+    background: #f5f5f5;
+    border-color: #c8c8c8 !important;
+}
+
+.source-link .material-symbols-outlined {
+    font-size: 18px;
+}
+
+.updated {
+    font-size: 0.8rem;
+    color: #999;
+    text-align: center;
+    margin: 0;
+}
+
+/* Same breakpoint and paddings as the Settings page. */
+@media (max-width: 900px) {
+    :host {
+        padding-top: 60px;
+        padding-left: 1rem;
+        padding-right: 1rem;
+        padding-bottom: 4rem;
+    }
+
+    .privacy-container {
+        max-width: 100%;
+    }
+
+    .privacy-section {
+        padding: 1.25rem;
+        border-radius: 10px;
+    }
+
+    .source-link {
+        display: flex;
+        width: 100%;
+        box-sizing: border-box;
+        justify-content: center;
+    }
+}
