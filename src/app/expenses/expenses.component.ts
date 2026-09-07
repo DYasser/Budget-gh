@@ -3,10 +3,8 @@ import { CommonModule, CurrencyPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { BudgetService, ExpenseCategory, BudgetFrequency } from '../budget.service';
-import { parseISO, lastDayOfMonth, addMonths, addWeeks, addYears } from 'date-fns';
 import { ConfirmationDialogComponent } from '../confirmation-dialog/confirmation-dialog.component'; // Import dialog
 
-interface Transaction { id: number; date: string; categoryId: string; categoryName: string; amount: number; description: string; }
 interface CategoryPercentage extends ExpenseCategory { percentage: number; color: string; monthlyEquivalent: number; }
 
 @Component({
@@ -22,42 +20,33 @@ export class ExpensesComponent implements OnInit, OnDestroy {
   @ViewChild('categoryNameInput') categoryNameInputRef!: ElementRef<HTMLInputElement>;
 
   expenseCategories: ExpenseCategory[] = [];
-  currencyCode: string = 'CAD';
+  currencyCode = 'CAD';
   private categoriesSubscription!: Subscription;
   private currencySubscription!: Subscription;
 
-  isSaving: boolean = false; 
-  isDeleting: { [key: string]: boolean } = {};
+  isSaving = false; 
+  isDeleting: Record<string, boolean> = {};
 
-  showDeleteConfirm: boolean = false; // State for dialog visibility
+  showDeleteConfirm = false; // State for dialog visibility
   categoryToDelete: ExpenseCategory | null = null; // Store category to delete
 
   toastMessage: string | null = null;
   toastType: 'success' | 'error' | null = null;
   private toastTimeout: any = null;
 
-  newCategoryName: string = '';
+  newCategoryName = '';
   newCategoryBudget: number | null = null;
   newCategoryFrequency: BudgetFrequency = 'Monthly';
-  newCategoryDueDate: string = '';
-  newCategoryIsDueEndOfMonth: boolean = false;
+  newCategoryDueDate = '';
+  newCategoryIsDueEndOfMonth = false;
 
   editingCategory: ExpenseCategory | null = null;
 
-  transactions: Transaction[] = [];
-  newTransactionAmount: number | null = null;
-  newTransactionDate: string = '';
-  newTransactionCategory: string | null = null;
-  newTransactionDescription: string = '';
-  private nextTransactionId = 1;
-
   categoryProportions: CategoryPercentage[] = [];
   budgetFrequencies: BudgetFrequency[] = ['Monthly', 'Weekly', 'Bi-Weekly', 'Quarterly', 'Annually', 'One-Time'];
-  currentMonthName: string = '';
-  currentMonthTotalEquivalentBudget: number = 0;
+  currentMonthName = '';
+  currentMonthTotalEquivalentBudget = 0;
 
-  private readonly WEEKS_IN_MONTH = 52 / 12;
-  private readonly BIWEEKS_IN_MONTH = 26 / 12;
 
   constructor(private budgetService: BudgetService, private cdr: ChangeDetectorRef) { }
 
@@ -70,7 +59,6 @@ export class ExpensesComponent implements OnInit, OnDestroy {
       this.calculateCurrentMonthProportions();
     });
     this.currencySubscription = this.budgetService.currency$.subscribe(code => { this.currencyCode = code; this.cdr.detectChanges(); });
-    this.newTransactionDate = this.getTodayDateString();
     this.newCategoryDueDate = this.getTodayDateString();
     this.newCategoryIsDueEndOfMonth = false;
   }
@@ -96,23 +84,14 @@ export class ExpensesComponent implements OnInit, OnDestroy {
       this.currentMonthTotalEquivalentBudget = this.budgetService.calculateTotalOccurrencesBudgetForMonth(allCurrentCategories, today);
       const relevantCategories = this.budgetService.getRelevantCategoriesForMonth(allCurrentCategories, today);
 
-      const categoriesForProportionBars = relevantCategories.map((cat, index) => {
-          let monthlyEquivalent = 0;
-           switch (cat.frequency) {
-               case 'Monthly':   monthlyEquivalent = cat.budget; break;
-               case 'Weekly':    monthlyEquivalent = cat.budget * this.WEEKS_IN_MONTH; break;
-               case 'Bi-Weekly': monthlyEquivalent = cat.budget * this.BIWEEKS_IN_MONTH; break;
-               case 'Quarterly': monthlyEquivalent = cat.budget / 3; break;
-               case 'Annually':  monthlyEquivalent = cat.budget / 12; break;
-               case 'One-Time':  monthlyEquivalent = 0; break;
-           }
-          return {
+      const categoriesForProportionBars = relevantCategories
+          .filter(cat => cat.frequency !== 'One-Time')
+          .map((cat, index) => ({
               ...cat,
-              monthlyEquivalent: monthlyEquivalent,
+              monthlyEquivalent: this.budgetService.getMonthlyEquivalent(cat),
               percentage: 0,
               color: cat.color || this.budgetService.getColorByIndex(index)
-          };
-      }).filter(cat => cat.frequency !== 'One-Time');
+          }));
 
       this.categoryProportions = categoriesForProportionBars.map(cat => ({
           ...cat,
@@ -122,7 +101,7 @@ export class ExpensesComponent implements OnInit, OnDestroy {
       this.cdr.detectChanges();
   }
 
-  showToast(message: string, type: 'success' | 'error', duration: number = 3000): void {
+  showToast(message: string, type: 'success' | 'error', duration = 3000): void {
     clearTimeout(this.toastTimeout); // Clear any existing toast timeout
     this.toastMessage = message;
     this.toastType = type;
@@ -220,14 +199,5 @@ export class ExpensesComponent implements OnInit, OnDestroy {
   cancelDeletion(): void {
     this.showDeleteConfirm = false;
     this.categoryToDelete = null;
-  }
-
-  addTransaction(): void {
-     if (this.newTransactionAmount === null || this.newTransactionAmount <= 0 || !this.newTransactionDate || this.newTransactionCategory === null) { alert('Please fill in Amount, Date, and Category for the transaction.'); return; }
-     const selectedCategory = this.expenseCategories.find(c => c.id === this.newTransactionCategory);
-     if (!selectedCategory) { alert('Selected category not found.'); return; }
-     const newTransaction: Transaction = { id: this.nextTransactionId++, amount: this.newTransactionAmount, date: this.newTransactionDate, categoryId: selectedCategory.id, categoryName: selectedCategory.name, description: this.newTransactionDescription.trim() };
-     this.transactions.push(newTransaction); console.log('Added Transaction (local):', newTransaction);
-     this.newTransactionAmount = null; this.newTransactionCategory = null; this.newTransactionDescription = ''; this.newTransactionDate = this.getTodayDateString();
   }
 }

@@ -27,11 +27,11 @@ export class SettingsComponent implements OnInit, OnDestroy {
     { code: 'MXN', label: 'MXN — Mexican Peso' }
   ];
 
-  selectedCurrency: string = 'CAD';
+  selectedCurrency = 'CAD';
   private currencySubscription!: Subscription;
 
-  showImportConfirm: boolean = false;
-  importConfirmMessage: string = '';
+  showImportConfirm = false;
+  importConfirmMessage = '';
   private pendingImportData: { expenses?: ExpenseCategory[], incomes?: IncomeSource[], currency?: string } | null = null;
   importStatusMessage: string | null = null;
   importStatusType: 'success' | 'error' | null = null;

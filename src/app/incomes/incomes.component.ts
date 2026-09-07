@@ -20,16 +20,16 @@ export class IncomesComponent implements OnInit, OnDestroy {
   incomeSources: IncomeSource[] = [];
   private incomeSubscription!: Subscription;
 
-  newIncomeName: string = '';
+  newIncomeName = '';
   newIncomeAmount: number | null = null;
   newIncomeFrequency: BudgetFrequency = 'Monthly';
-  newIncomeReceiveDate: string = '';
+  newIncomeReceiveDate = '';
 
   editingIncomeSource: IncomeSource | null = null;
-  isSaving: boolean = false;
-  isDeleting: { [key: string]: boolean } = {};
+  isSaving = false;
+  isDeleting: Record<string, boolean> = {};
 
-  showIncomeDeleteConfirm: boolean = false;
+  showIncomeDeleteConfirm = false;
   incomeSourceToDelete: IncomeSource | null = null;
 
   budgetFrequencies: BudgetFrequency[] = ['Monthly', 'Weekly', 'Bi-Weekly', 'Quarterly', 'Annually', 'One-Time'];
@@ -127,7 +127,7 @@ export class IncomesComponent implements OnInit, OnDestroy {
     this.incomeSourceToDelete = null;
   }
 
-  showToast(message: string, type: 'success' | 'error', duration: number = 3000): void {
+  showToast(message: string, type: 'success' | 'error', duration = 3000): void {
     clearTimeout(this.toastTimeout);
     this.toastMessage = message; this.toastType = type; this.cdr.detectChanges();
     this.toastTimeout = setTimeout(() => { this.toastMessage = null; this.toastType = null; this.cdr.detectChanges(); }, duration);

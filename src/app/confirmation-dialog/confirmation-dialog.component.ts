@@ -9,19 +9,19 @@ import { CommonModule } from '@angular/common';
   styleUrls: ['./confirmation-dialog.component.css']
 })
 export class ConfirmationDialogComponent {
-  @Input() isVisible: boolean = false;
-  @Input() message: string = 'Are you sure?';
-  @Input() confirmButtonText: string = 'Confirm';
-  @Input() cancelButtonText: string = 'Cancel';
+  @Input() isVisible = false;
+  @Input() message = 'Are you sure?';
+  @Input() confirmButtonText = 'Confirm';
+  @Input() cancelButtonText = 'Cancel';
 
   @Output() confirm = new EventEmitter<void>();
-  @Output() cancel = new EventEmitter<void>();
+  @Output() cancelled = new EventEmitter<void>();
 
   onConfirmClick(): void {
     this.confirm.emit();
   }
 
   onCancelClick(): void {
-    this.cancel.emit();
+    this.cancelled.emit();
   }
 }
