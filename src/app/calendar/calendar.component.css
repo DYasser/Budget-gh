@@ -469,3 +469,15 @@
     font-size: 0.9rem;
   }
 }
+/* Direction cue in the month grid, where the dot's colour carries the category's
+   identity rather than whether money is arriving or leaving. Income reads as a ring,
+   expenses stay solid, so the two are distinguishable without relying on hue. */
+.calendar-view-section .cal-month-view .cal-event.cal-income {
+  background-color: transparent !important;
+  border-width: 2px !important;
+  border-style: solid !important;
+}
+
+.calendar-view-section .cal-month-view .cal-event.cal-expense {
+  border-style: solid !important;
+}

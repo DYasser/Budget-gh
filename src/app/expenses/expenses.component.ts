@@ -86,11 +86,19 @@ export class ExpensesComponent implements OnInit, OnDestroy {
 
       const categoriesForProportionBars = relevantCategories
           .filter(cat => cat.frequency !== 'One-Time')
-          .map((cat, index) => ({
+          .map(cat => ({
               ...cat,
               monthlyEquivalent: this.budgetService.getMonthlyEquivalent(cat),
               percentage: 0,
-              color: cat.color || this.budgetService.getColorByIndex(index)
+              color: cat.color as string | undefined,
+          }))
+          // Sorted before colours are assigned: the palette runs out after
+          // MAX_DISTINCT_SERIES entries, and the ones that fall back to grey should
+          // be the smallest rather than whichever happened to be last in the list.
+          .sort((a, b) => b.monthlyEquivalent - a.monthlyEquivalent)
+          .map((cat, index) => ({
+              ...cat,
+              color: cat.color || this.budgetService.getColorByIndex(index),
           }));
 
       this.categoryProportions = categoriesForProportionBars.map(cat => ({

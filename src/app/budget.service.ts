@@ -56,8 +56,11 @@ export class BudgetService {
    * Seven hues validated as a set for colour-vision deficiency and for
    * normal-vision separation between neighbouring segments; the previous five-hue
    * palette repeated itself from the sixth category onward, so a twelve-category
-   * month drew Rent and Gas in the same pink. Anything past the seventh entry is
-   * grouped under a neutral grey rather than given a made-up eighth hue.
+   * month drew Rent and Gas in the same pink. Anything past the last entry is
+   * grouped under a neutral grey rather than given a made-up extra hue.
+   *
+   * Green is absent on purpose: it is reserved for REMAINING_COLOR below, so the
+   * balance ring's "money you keep" can never be the same hue as a category.
    */
   private readonly categoricalPalette: readonly string[] = [
     '#2a78d6', // blue
@@ -65,12 +68,31 @@ export class BudgetService {
     '#1baf7a', // aqua
     '#eda100', // yellow
     '#e87ba4', // magenta
-    '#008300', // green
     '#4a3aa7', // violet
   ];
 
   /** Used for the grouped remainder and for anything without a slot of its own. */
   readonly OTHER_COLOR = '#8b8b86';
+
+  /**
+   * The two slices of the dashboard's balance ring.
+   *
+   * Deliberately outside categoricalPalette. The balance ring encodes a quantity
+   * (spent against remaining), not identity, so reusing a category hue would make
+   * "money you keep" and "your third-largest expense" the same green when switching
+   * views. Both clear 3:1 against a white surface, and the ring's labels supply the
+   * secondary encoding the red/green pair needs for colour-vision deficiency.
+   */
+  readonly SPENT_COLOR = '#e34948';
+  readonly REMAINING_COLOR = '#008300';
+
+  /**
+   * Where income starts in the shared palette.
+   *
+   * Expenses fill from the front, income from the middle, so the first of each does
+   * not collide. Wrapping is handled by getColorByIndex.
+   */
+  private readonly INCOME_PALETTE_OFFSET = 3;
 
   /** How many entries get their own hue before the rest are grouped. */
   readonly MAX_DISTINCT_SERIES = this.categoricalPalette.length;
@@ -307,7 +329,10 @@ export class BudgetService {
           { frequency: income.frequency, startDate: income.receiveDate },
           periodInterval
         );
-        const color = this.getColorByIndex(incomeIndex);
+        // Offset so an income source and an expense category never land on the
+        // same hue: in the month grid the dot is the only cue, and the +/- lives
+        // in the receipt list rather than the calendar cell.
+        const color = this.getColorByIndex(incomeIndex + this.INCOME_PALETTE_OFFSET);
 
         return occurrences.map(occurrence => this.toEvent({
             idPrefix: 'inc',
@@ -331,6 +356,9 @@ export class BudgetService {
       title: spec.title,
       color: { primary: spec.color, secondary: this.adjustColorOpacity(spec.color, 0.6) },
       allDay: true,
+      // Colour carries identity, so direction needs its own channel: in the month
+      // grid the dot is all you see, and the +/- is only in the receipt list.
+      cssClass: spec.meta.type === 'income' ? 'cal-income' : 'cal-expense',
       meta: spec.meta,
     };
   }
