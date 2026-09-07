@@ -53,6 +53,19 @@
 
 <div *ngIf="showChart" class="main-content-area" [@fade]>
   <h1 class="chart-title" [innerHTML]="chartDateRangeTitle"></h1>
+
+  <div class="view-switcher" role="tablist" aria-label="Dashboard view">
+    <button *ngFor="let view of views"
+            type="button"
+            role="tab"
+            class="view-tab"
+            [class.active]="activeView === view.id"
+            [attr.aria-selected]="activeView === view.id"
+            (click)="selectView(view.id)">
+      {{ view.label }}
+    </button>
+  </div>
+
   <div class="chart-wrapper">
     <canvas baseChart
             [data]="{ labels: doughnutChartLabels, datasets: doughnutChartDatasets }"
@@ -60,16 +73,34 @@
             [options]="doughnutChartOptions"
             [legend]="false">
     </canvas>
-    <div class="chart-center-text">
-      {{ totalBudget | currency:currencyCode:'symbol':'1.0-0' }}
+    <div class="chart-center-text" [class.negative]="activeView === 'balance' && remaining < 0">
+      <span class="centre-amount">{{ centreAmount | currency:currencyCode:'symbol':'1.0-0' }}</span>
+      <span class="centre-caption">{{ centreCaption }}</span>
     </div>
   </div>
-  <div class="custom-legend-dashboard" *ngIf="doughnutChartLabels.length > 0">
+
+  <!-- Balance needs both sides side by side; the breakdown views do not. -->
+  <div class="balance-summary" *ngIf="activeView === 'balance' && !isEmpty">
+    <div class="summary-item">
+      <span class="summary-label">Income</span>
+      <span class="summary-value income">{{ totalIncome | currency:currencyCode:'symbol':'1.0-0' }}</span>
+    </div>
+    <div class="summary-divider"></div>
+    <div class="summary-item">
+      <span class="summary-label">Expenses</span>
+      <span class="summary-value expense">{{ totalBudget | currency:currencyCode:'symbol':'1.0-0' }}</span>
+    </div>
+  </div>
+
+  <div class="custom-legend-dashboard" *ngIf="legendRows.length > 0 && activeView !== 'balance'">
     <ul class="legend-list">
-      <li *ngFor="let label of doughnutChartLabels; let i = index" class="legend-item">
-        <span class="legend-color-box" [style.backgroundColor]="getLegendColor(i)"></span>
-        <span class="legend-label">{{ label }}</span>
+      <li *ngFor="let row of legendRows" class="legend-item">
+        <span class="legend-color-box" [style.backgroundColor]="row.color"></span>
+        <span class="legend-label">{{ row.label }}</span>
+        <span class="legend-amount">{{ row.amount | currency:currencyCode:'symbol':'1.0-0' }}</span>
       </li>
     </ul>
   </div>
+
+  <p class="empty-note" *ngIf="isEmpty">{{ emptyMessage }}</p>
 </div>

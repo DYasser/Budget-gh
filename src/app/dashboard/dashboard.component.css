@@ -250,10 +250,129 @@ canvas {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  pointer-events: none;
+  text-align: center;
+}
+
+.centre-amount {
   font-size: 2.5rem;
   font-weight: 600;
   color: #333;
-  pointer-events: none;
+  line-height: 1.1;
+}
+
+.centre-caption {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #999;
+}
+
+/* Overspending: the centre figure carries the bad news. */
+.chart-center-text.negative .centre-amount {
+  color: #d32f2f;
+}
+
+/* Segmented control above the ring. */
+.view-switcher {
+  display: inline-flex;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  background: #f0f0f0;
+  border-radius: 999px;
+  margin-bottom: 1.25rem;
+}
+
+.view-tab {
+  appearance: none;
+  border: none;
+  background: transparent;
+  padding: 0.45rem 1.1rem;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #777;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.view-tab:hover:not(.active) {
+  color: #444;
+}
+
+.view-tab.active {
+  background: #fff;
+  color: #222;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+}
+
+.view-tab:focus-visible {
+  outline: 2px solid var(--app-accent-color, #007bff);
+  outline-offset: 2px;
+}
+
+/* Income vs expenses, shown under the balance ring. */
+.balance-summary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.summary-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #999;
+}
+
+.summary-value {
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.summary-value.income {
+  color: #2e9b9b;
+}
+
+.summary-value.expense {
+  color: #e05070;
+}
+
+.summary-divider {
+  width: 1px;
+  height: 32px;
+  background: #e8e8e8;
+}
+
+.legend-amount {
+  margin-left: 0.5rem;
+  font-weight: 600;
+  color: #333;
+  white-space: nowrap;
+}
+
+.empty-note {
+  margin-top: 1.5rem;
+  font-size: 0.9rem;
+  color: #999;
+  text-align: center;
+  padding: 0 1.5rem;
 }
 
 .custom-legend {
@@ -313,6 +432,34 @@ canvas {
 }
 
 @media (max-width: 900px) {
+
+  /* The ring is smaller here, so the centre figure and the tabs shrink with it. */
+  .centre-amount {
+    font-size: 1.75rem;
+  }
+
+  .centre-caption {
+    font-size: 0.62rem;
+  }
+
+  .view-switcher {
+    margin-bottom: 1rem;
+  }
+
+  .view-tab {
+    padding: 0.4rem 0.85rem;
+    font-size: 0.8rem;
+  }
+
+  .balance-summary {
+    gap: 1.25rem;
+    margin-top: 1.25rem;
+  }
+
+  .summary-value {
+    font-size: 1rem;
+  }
+
   .hamburger-btn {
     display: flex;
   }

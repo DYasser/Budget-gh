@@ -206,6 +206,113 @@ describe('BudgetService', () => {
   });
 
   // ---------------------------------------------------------------------------
+  // Income and balance for a specific month.
+  // ---------------------------------------------------------------------------
+
+  describe('calculateTotalIncomeOccurrencesForMonth', () => {
+    it('counts every payday in the month, including a fifth one', () => {
+      // A Wednesday weekly income lands five times in January 2025.
+      const wage = income({ frequency: 'Weekly', receiveDate: '2025-01-01', amount: 500 });
+
+      expect(service.calculateTotalIncomeOccurrencesForMonth([wage], at(2025, 1, 15))).toBe(2500);
+    });
+
+    it('counts bi-weekly paydays that straddle a month boundary', () => {
+      const wage = income({ frequency: 'Bi-Weekly', receiveDate: '2025-01-03', amount: 2000 });
+
+      // Jan 3, 17, 31, then Feb 14 and 28 - two land in February.
+      expect(service.calculateTotalIncomeOccurrencesForMonth([wage], at(2025, 2, 15))).toBe(4000);
+    });
+
+    it('ignores income that has not started yet', () => {
+      const future = income({ frequency: 'Monthly', receiveDate: '2025-06-01', amount: 3000 });
+
+      expect(service.calculateTotalIncomeOccurrencesForMonth([future], at(2025, 1, 15))).toBe(0);
+    });
+
+    it('counts a one-off payment only in its own month', () => {
+      const bonus = income({ frequency: 'One-Time', receiveDate: '2025-03-10', amount: 5000 });
+
+      expect(service.calculateTotalIncomeOccurrencesForMonth([bonus], at(2025, 3, 15))).toBe(5000);
+      expect(service.calculateTotalIncomeOccurrencesForMonth([bonus], at(2025, 4, 15))).toBe(0);
+    });
+
+    it('sums across multiple sources', () => {
+      const salary = income({ id: 'salary', frequency: 'Monthly', receiveDate: '2025-01-01', amount: 3000 });
+      const freelance = income({ id: 'freelance', frequency: 'Monthly', receiveDate: '2025-01-20', amount: 800 });
+
+      expect(service.calculateTotalIncomeOccurrencesForMonth([salary, freelance], at(2025, 1, 15))).toBe(3800);
+    });
+
+    it('returns zero with no income sources', () => {
+      expect(service.calculateTotalIncomeOccurrencesForMonth([], at(2025, 1, 15))).toBe(0);
+    });
+  });
+
+  describe('income and expenses together', () => {
+    it('subtract cleanly because both count occurrences in the month', () => {
+      // Both sides answer "what actually happens this month", so the difference is
+      // meaningful. January 2025 holds five Wednesdays, so coffee costs $50, not $43.33.
+      const salary = income({ frequency: 'Monthly', receiveDate: '2025-01-01', amount: 3000 });
+      const rent = expense({ id: 'rent', frequency: 'Monthly', dueDate: '2025-01-01', budget: 1500 });
+      const coffee = expense({ id: 'coffee', frequency: 'Weekly', dueDate: '2025-01-01', budget: 10 });
+
+      const earned = service.calculateTotalIncomeOccurrencesForMonth([salary], at(2025, 1, 15));
+      const spent = service.calculateTotalOccurrencesBudgetForMonth([rent, coffee], at(2025, 1, 15));
+
+      expect(earned).toBe(3000);
+      expect(spent).toBe(1550);
+      expect(earned - spent).toBe(1450);
+    });
+
+    it('goes negative when the month costs more than it pays', () => {
+      const salary = income({ frequency: 'Monthly', receiveDate: '2025-01-01', amount: 1000 });
+      const rent = expense({ frequency: 'Monthly', dueDate: '2025-01-01', budget: 1550 });
+
+      const earned = service.calculateTotalIncomeOccurrencesForMonth([salary], at(2025, 1, 15));
+      const spent = service.calculateTotalOccurrencesBudgetForMonth([rent], at(2025, 1, 15));
+
+      expect(earned - spent).toBe(-550);
+    });
+  });
+
+  describe('per-source income totals', () => {
+    it('reports what each source pays in the month, dropping those that pay nothing', () => {
+      const salary = income({ id: 'salary', name: 'Salary', frequency: 'Monthly', receiveDate: '2025-01-01', amount: 3000 });
+      const weekly = income({ id: 'tips', name: 'Tips', frequency: 'Weekly', receiveDate: '2025-01-01', amount: 100 });
+      const future = income({ id: 'raise', name: 'New job', frequency: 'Monthly', receiveDate: '2025-09-01', amount: 4000 });
+
+      const breakdown = service.getIncomeTotalsForMonth([salary, weekly, future], at(2025, 1, 15));
+
+      expect(breakdown.map(b => b.name)).toEqual(['Salary', 'Tips']);
+      expect(breakdown.map(b => b.total)).toEqual([3000, 500]);
+    });
+  });
+
+  describe('per-category expense totals', () => {
+    it('reports what each category charges in the month, dropping those that charge nothing', () => {
+      const rent = expense({ id: 'rent', name: 'Rent', frequency: 'Monthly', dueDate: '2025-01-01', budget: 1500 });
+      const coffee = expense({ id: 'coffee', name: 'Coffee', frequency: 'Weekly', dueDate: '2025-01-01', budget: 10 });
+      const future = expense({ id: 'gym', name: 'Gym', frequency: 'Monthly', dueDate: '2025-09-01', budget: 40 });
+
+      const breakdown = service.getExpenseTotalsForMonth([rent, coffee, future], at(2025, 1, 15));
+
+      expect(breakdown.map(b => b.name)).toEqual(['Rent', 'Coffee']);
+      expect(breakdown.map(b => b.total)).toEqual([1500, 50]);
+    });
+
+    it('agrees with the month total it is derived from', () => {
+      const rent = expense({ id: 'rent', name: 'Rent', frequency: 'Monthly', dueDate: '2025-01-01', budget: 1500 });
+      const coffee = expense({ id: 'coffee', name: 'Coffee', frequency: 'Weekly', dueDate: '2025-01-01', budget: 10 });
+
+      const breakdown = service.getExpenseTotalsForMonth([rent, coffee], at(2025, 1, 15));
+      const summed = breakdown.reduce((t, b) => t + b.total, 0);
+
+      expect(summed).toBe(service.calculateTotalOccurrencesBudgetForMonth([rent, coffee], at(2025, 1, 15)));
+    });
+  });
+
+  // ---------------------------------------------------------------------------
   // Monthly-equivalent averaging.
   // ---------------------------------------------------------------------------
 

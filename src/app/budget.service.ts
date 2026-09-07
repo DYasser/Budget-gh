@@ -23,6 +23,14 @@ export interface IncomeSource {
   receiveDate: string;
 }
 
+/** One line of a month breakdown: what a single category or source came to. */
+export interface MonthTotal {
+  id: string;
+  name: string;
+  total: number;
+  color?: string;
+}
+
 export type CalendarMetaData = { type: 'expense', data: ExpenseCategory } | { type: 'income', data: IncomeSource };
 
 @Injectable({
@@ -163,6 +171,56 @@ export class BudgetService {
               return hasStarted;
           } catch { return false; }
       });
+  }
+
+  /**
+   * What each category actually charges during the target month, largest first, with
+   * categories that charge nothing in the month left out.
+   *
+   * Feeds the dashboard's expense ring, so the segments sum to the ring's total rather
+   * than to a monthly average - see calculateTotalOccurrencesBudgetForMonth.
+   */
+  getExpenseTotalsForMonth(categories: ExpenseCategory[], targetDate: Date): MonthTotal[] {
+      const month = { start: startOfMonth(targetDate), end: endOfMonth(targetDate) };
+
+      return categories
+          .map(cat => ({
+              id: cat.id,
+              name: cat.name,
+              color: cat.color,
+              total: this.getOccurrences(
+                { frequency: cat.frequency, startDate: cat.dueDate, isDueEndOfMonth: cat.isDueEndOfMonth },
+                month
+              ).length * cat.budget,
+          }))
+          .filter(entry => entry.total > 0)
+          .sort((a, b) => b.total - a.total);
+  }
+
+  /** What each income source actually pays during the target month, largest first. */
+  getIncomeTotalsForMonth(incomeSources: IncomeSource[], targetDate: Date): MonthTotal[] {
+      const month = { start: startOfMonth(targetDate), end: endOfMonth(targetDate) };
+
+      return incomeSources
+          .map(source => ({
+              id: source.id,
+              name: source.name,
+              total: this.getOccurrences(
+                { frequency: source.frequency, startDate: source.receiveDate },
+                month
+              ).length * source.amount,
+          }))
+          .filter(entry => entry.total > 0)
+          .sort((a, b) => b.total - a.total);
+  }
+
+  /**
+   * What actually arrives during the target month. The income counterpart to
+   * calculateTotalOccurrencesBudgetForMonth, so the two can be subtracted.
+   */
+  calculateTotalIncomeOccurrencesForMonth(incomeSources: IncomeSource[], targetDate: Date): number {
+      return this.getIncomeTotalsForMonth(incomeSources, targetDate)
+          .reduce((total, entry) => total + entry.total, 0);
   }
 
   /**
